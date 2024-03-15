@@ -13,4 +13,6 @@ export const errorMessages = {
     hashingError: "Ошибка хеширования",
     deleteProduct: "Товар удалён",
     invalidProductId: "Некорректный идентификатор товара",
+    accessIsdenied: "Доступ запрещен",
+    notAuthorized: "Необходима авторизация"
   };

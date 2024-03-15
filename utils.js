@@ -54,9 +54,9 @@ async function comparisonsPassword(password, hash) {
   }
 }
 
-function generateToken(userId) {
+function generateToken(userId, role) {
   return jwt.sign(
-    { _id: userId },
+    { _id: userId, role },
     env === "production" ? secretJwtKey : "dev-secret",
     { expiresIn: "7d" }
   );

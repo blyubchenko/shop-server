@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 const config = {
+  env: process.env.NODE_ENV || 'production',
   port: process.env.PORT || 3000,
   urlDb: process.env.URL_DB || "mongodb://127.0.0.1:27017/mydb",
   secretJwtKey: process.env.SECRET_KEY_JWT || "secret_key",
