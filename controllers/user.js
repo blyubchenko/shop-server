@@ -4,13 +4,13 @@ import { statusCode } from "../errors/statusCode.js";
 import { ApiError } from "../errors/errorApi.js";
 import { errorMessages } from "../errors/messageError.js";
 import utils from "../utils.js";
+import config from "../config.js"
 
 const {
-  checkNameLength,
-  checkPasswordLength,
-  checkUser,
+  checkStringLength,
+  checkResult,
   comparisonsPassword,
-  findUserById,
+  findById,
   generateToken,
   hashPassword,
   normalizeEmail,
@@ -24,7 +24,10 @@ const {
   logoutSuccess,
   loginSuccess,
   deletedUser,
+  invalidUserId,
+  entityNotFound,
 } = errorMessages;
+const { nameLength, passwordLength } = config;
 const { OK, CREATED } = statusCode;
 const { BadRequestError, ConflictError } = ApiError;
 
@@ -36,7 +39,8 @@ class userController {
 
   async getUserById(req, res, next) {
     try {
-      const user = await findUserById(req.params.id);
+      const user = await findById(User, req.params.id, invalidUserId);
+      checkResult(user, entityNotFound('Пользователь'));
       return res.status(OK).json(user);
     } catch (error) {
       next(error);
@@ -45,7 +49,8 @@ class userController {
 
   async getUserInfo(req, res, next) {
     try {
-      const user = await findUserById(req.user._id);
+      const user = await findById(User, req.user._id, invalidUserId);
+      checkResult(user, entityNotFound('Пользователь'));
       return res.status(OK).json(user);
     } catch (error) {
       next(error);
@@ -55,8 +60,8 @@ class userController {
   async createUser(req, res, next) {
     try {
       const { name, password, email, role } = req.body;
-      checkNameLength(name);
-      checkPasswordLength(password);
+      checkStringLength(name, nameLength.minlength, nameLength.maxlength, "имени");
+      checkStringLength(name, passwordLength.minlength, passwordLength.maxlength, "пароля");
       const normalizedEmail = normalizeEmail(email);
       const cryptPassword = await hashPassword(password);
       await User.create({
@@ -85,7 +90,7 @@ class userController {
   async updateUserData(req, res, next) {
     try {
       const { name } = req.body;
-      checkNameLength(name);
+      checkStringLength(name, nameLength.minlength, nameLength.maxlength, 'имени');
       const user = await User.findByIdAndUpdate(
         req.user._id,
         { $set: { name } },
@@ -94,7 +99,7 @@ class userController {
           runValidators: true,
         }
       );
-      checkUser(user);
+      checkResult(user, entityNotFound('Пользователь'));
       return res.status(OK).json(user);
     } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {
@@ -108,7 +113,8 @@ class userController {
   async deleteUser(req, res, next) {
     try {
       const { id } = req.params;
-      const user = await findUserById(id);
+      const user = await findById(User, id, invalidUserId);
+      checkResult(user, entityNotFound('Пользователь'))
       await User.deleteOne(user);
       return res.status(OK).json({ message: deletedUser });
     } catch (error) {
@@ -123,7 +129,7 @@ class userController {
   async deleteAcount(req, res, next) {
     try {
       const user = await User.findById(req.params.id);
-      checkUser(user);
+      checkResult(user, entityNotFound('Пользователь'));
       if (JSON.stringify(user.owner) !== JSON.stringify(req.user._id)) {
         throw new ForbiddenError(forbiddenAction);
       }
@@ -145,7 +151,7 @@ class userController {
       const user = await User.findOne({ email: normalizedEmail }).select(
         "+password"
       );
-      checkUser(user, invalidCredentials);
+      checkResult(user, invalidCredentials);
       await comparisonsPassword(password, user.password);
       const token = generateToken(user._id);
       res.cookie("jwt", token, {

@@ -1,53 +1,42 @@
 import { errorMessages } from "./errors/messageError.js";
 import mongoose from "mongoose";
 import { ApiError } from "./errors/errorApi.js";
-import User from "./modes/user.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import config from "./config.js";
 const { NotFoundError, UnauthorizedError, BadRequestError } = ApiError;
-const { env, secretJwtKey, name, password, saltRounds } = config;
+const { env, secretJwtKey, saltRounds } = config;
 const {
-  invalidUserId,
-  userNotFound,
   invalidEntityLength,
   hashingError,
   invalidCredentials,
 } = errorMessages;
 
-async function findUserById(id) {
+async function findById(model, id, errorMessage) {
   try {
-    const user = await User.findById(id);
-    checkUser(user);
-    return user;
+    const result = await model.findById(id);
+    return result;
   } catch (error) {
     if (error instanceof mongoose.Error.CastError) {
-      throw BadRequestError(invalidUserId);
+      throw BadRequestError(errorMessage);
     } else {
       throw error;
     }
   }
 }
 
-function checkUser(user, message = userNotFound) {
-  if (user === null) {
-    throw NotFoundError(message);
+function checkResult(result, errorMessage) {
+  if (result === null) {
+    throw NotFoundError(errorMessage);
   }
 }
 
-function checkNameLength(userName) {
-  if (userName.length < name.minlength || userName.length > name.maxlength) {
-    throw BadRequestError(
-      invalidEntityLength(name.minlength, name.maxlength)
-    );
-  }
-}
-function checkPasswordLength(userPassword) {
-  if (userPassword.length < password.minlength || userPassword.length > password.maxlength) {
-    throw BadRequestError(
-      invalidEntityLength(password.minlength, password.maxlength)
-    );
-  }
+function checkStringLength(value, minLength, maxLength, entity){
+    if (value.length < minLength || value.length > maxLength) {
+        throw BadRequestError(
+          invalidEntityLength(entity, minLength, maxLength)
+        );
+      }
 }
 
 async function hashPassword(password) {
@@ -81,9 +70,8 @@ export default {
   normalizeEmail,
   comparisonsPassword,
   hashPassword,
-  checkNameLength,
-  checkPasswordLength,
-  findUserById,
+  checkStringLength,
+  findById,
   generateToken,
-  checkUser,
+  checkResult,
 };

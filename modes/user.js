@@ -4,21 +4,21 @@ import config from '../config.js';
 import { errorMessages } from '../errors/messageError.js';
 const {invalidEmailFormat} = errorMessages
 
-const {name, password, saltRounds} = config;
+const {nameLength, passwordLength, saltRounds} = config;
 
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    minlength: name.minlength,
-    maxlength: name.maxlength,
+    minlength: nameLength.minlength,
+    maxlength: nameLength.maxlength,
     trim: true,
   },
   password: {
     type: String,
     required: true,
-    minlength: password.minlength,
-    maxlength: (password.maxlength + saltRounds) * 3,
+    minlength: passwordLength.minlength,
+    maxlength: (passwordLength.maxlength + saltRounds) * 3,
     select: false,
   },
   email: {
