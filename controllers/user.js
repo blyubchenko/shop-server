@@ -27,7 +27,7 @@ const {
   invalidUserId,
   entityNotFound,
 } = errorMessages;
-const { nameLength, passwordLength } = config;
+const { nameUserLength, passwordLength } = config;
 const { OK, CREATED } = statusCode;
 const { BadRequestError, ConflictError } = ApiError;
 
@@ -62,8 +62,8 @@ class userController {
       const { name, password, email } = req.body;
       checkStringLength(
         name,
-        nameLength.minlength,
-        nameLength.maxlength,
+        nameUserLength.minlength,
+        nameUserLength.maxlength,
         "имени"
       );
       checkStringLength(
@@ -101,8 +101,8 @@ class userController {
       const { name } = req.body;
       checkStringLength(
         name,
-        nameLength.minlength,
-        nameLength.maxlength,
+        nameUserLength.minlength,
+        nameUserLength.maxlength,
         "имени"
       );
       const user = await User.findByIdAndUpdate(
@@ -137,9 +137,9 @@ class userController {
       );
       checkResult(user, entityNotFound("Пользователь"));
       return res.status(OK).json(user);
-    } catch (error) {
+    } catch (error){
       if (error instanceof mongoose.Error.CastError) {
-        next(BadRequestError(invalidUserId));
+        next(BadRequestError(invalidData));
     }
       if (error instanceof mongoose.Error.ValidationError) {
         next(BadRequestError(invalidData));

@@ -1,21 +1,27 @@
 import mongoose from "mongoose";
+import config from "../config.js";
+const {nameProductLength, descriptionProductLength, priceLength} = config;
 
 const productShema = new mongoose.Schema({
   name: {
     type: String,
     require: true,
-    minlength: 2,
-    maxlength: 30,
+    minlength: nameProductLength.minlength,
+    maxlength: nameProductLength.maxlength,
     trim: true,
   },
   description: {
     type: String,
     required: true,
+    minlength: descriptionProductLength.minlength,
+    maxlength: descriptionProductLength.maxlength,
     trim: true,
   },
   price: {
     type: Number,
     required: true,
+    minlength: priceLength.minlength,
+    maxlength: priceLength.maxlength,
   },
   material: {
     type: String,

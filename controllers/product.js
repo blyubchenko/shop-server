@@ -9,7 +9,7 @@ import config from "../config.js";
 const { checkStringLength, checkResult, findById } = utils;
 
 const { invalidData, deleteProduct, invalidProductId, entityNotFound } = errorMessages;
-const { nameLength } = config;
+const { nameProductLength } = config;
 const { OK, CREATED } = statusCode;
 const { BadRequestError } = ApiError;
 
@@ -34,8 +34,8 @@ class productController {
       const { name } = req.body;
       checkStringLength(
         name,
-        nameLength.minlength,
-        nameLength.maxlength,
+        nameProductLength.minlength,
+        nameProductLength.maxlength,
         "наименования товара"
       );
       const product = await Product.create({...req.body});
@@ -55,8 +55,8 @@ class productController {
         req.body;
       checkStringLength(
         name,
-        nameLength.minlength,
-        nameLength.maxlength,
+        nameProductLength.minlength,
+        nameProductLength.maxlength,
         "нименования товара"
       );
       const product = await Product.findByIdAndUpdate(

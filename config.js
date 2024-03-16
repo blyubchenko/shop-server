@@ -5,8 +5,11 @@ const config = {
   port: process.env.PORT || 3000,
   urlDb: process.env.URL_DB || "mongodb://127.0.0.1:27017/mydb",
   secretJwtKey: process.env.SECRET_KEY_JWT || "secret_key",
-  passwordLength: { minlength: 4, maxlength: 12 },
-  nameLength: { minlength: 2, maxlength: 30 },
+  passwordLength: { minlength: 8, maxlength: 12 },
+  nameUserLength: { minlength: 2, maxlength: 30 },
+  nameProductLength: { minlength: 2, maxlength: 30 },
+  descriptionProductLength: { minlength: 300, maxlength: 2000 },
+  priceLength: { minlength: 1, maxlength: 100000 },
   saltRounds: 10,
 };
 export default config;
