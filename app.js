@@ -5,7 +5,7 @@ import cors from "cors";
 import router from "./routes/index.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import cookieParser from 'cookie-parser';
-
+import {errors} from "celebrate"
 
 const {port, urlDb} = config;
 
@@ -15,6 +15,7 @@ app.use(cors())
 app.use(express.json());
 
 app.use(router);
+app.use(errors())
 app.use(errorHandler)
 async function start() {
   try {
