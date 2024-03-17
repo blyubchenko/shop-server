@@ -4,12 +4,9 @@ import { statusCode } from "../errors/statusCode.js";
 import { ApiError } from "../errors/errorApi.js";
 import { errorMessages } from "../errors/messageError.js";
 import utils from "../utils.js";
-import config from "../config.js";
 
-const { checkStringLength, checkResult, findById } = utils;
-
+const { checkResult, findById } = utils;
 const { invalidData, deleteProduct, invalidProductId, entityNotFound } = errorMessages;
-const { nameProductLength } = config;
 const { OK, CREATED } = statusCode;
 const { BadRequestError } = ApiError;
 
@@ -31,13 +28,6 @@ class productController {
 
   async createProduct(req, res, next) {
     try {
-      const { name } = req.body;
-      checkStringLength(
-        name,
-        nameProductLength.minlength,
-        nameProductLength.maxlength,
-        "наименования товара"
-      );
       const product = await Product.create({...req.body});
       return res.status(CREATED).json(product);
     } catch (error) {
@@ -53,14 +43,8 @@ class productController {
     try {
       const { name, description, price, material, color, type, quantity } =
         req.body;
-      checkStringLength(
-        name,
-        nameProductLength.minlength,
-        nameProductLength.maxlength,
-        "нименования товара"
-      );
       const product = await Product.findByIdAndUpdate(
-        req.product._id,
+        req.params.id,
         { $set: { name, description, price, material, color, type, quantity } },
         {
           new: true,

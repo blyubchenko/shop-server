@@ -109,8 +109,9 @@ const validatePostUser = celebrate({
       .max(passwordLength.maxlength)
       .regex(regPassword)
       .required(),
-    role: Joi.string().valid("user", "admin"),
+    role: Joi.string().valid("user", "admin", "moder"),
     email: Joi.string().required().email(),
+    secretKey: Joi.string()
   }),
 });
 

@@ -14,11 +14,11 @@ const {
   generateToken,
   hashPassword,
   normalizeEmail,
+  deleteJwt
 } = utils;
 
 const {
   duplicateEmail,
-  forbiddenAction,
   invalidCredentials,
   invalidData,
   logoutSuccess,
@@ -27,7 +27,7 @@ const {
   invalidUserId,
   entityNotFound,
 } = errorMessages;
-const { nameUserLength, passwordLength } = config;
+const { nameUserLength, passwordLength, secretUserKey } = config;
 const { OK, CREATED } = statusCode;
 const { BadRequestError, ConflictError } = ApiError;
 
@@ -59,27 +59,17 @@ class userController {
 
   async createUser(req, res, next) {
     try {
-      const { name, password, email } = req.body;
-      checkStringLength(
-        name,
-        nameUserLength.minlength,
-        nameUserLength.maxlength,
-        "имени"
-      );
-      checkStringLength(
-        password,
-        passwordLength.minlength,
-        passwordLength.maxlength,
-        "пароля"
-      );
+      const { name, password, email, role, secretKey } = req.body;
+      const checkKey = secretKey ===  secretUserKey ? role : 'user'
       const normalizedEmail = normalizeEmail(email);
       const cryptPassword = await hashPassword(password);
       await User.create({
         name,
         password: cryptPassword,
         email: normalizedEmail,
+        role: checkKey
       });
-      return res.status(CREATED).json({ name, email: normalizedEmail, role });
+      return res.status(CREATED).json({ name, email: normalizedEmail });
     } catch (error) {
       if (error.code === 11000) {
         next(ConflictError(duplicateEmail));
@@ -99,12 +89,6 @@ class userController {
   async updateUserData(req, res, next) {
     try {
       const { name } = req.body;
-      checkStringLength(
-        name,
-        nameUserLength.minlength,
-        nameUserLength.maxlength,
-        "имени"
-      );
       const user = await User.findByIdAndUpdate(
         req.user._id,
         { $set: { name } },
@@ -167,12 +151,10 @@ class userController {
 
   async deleteAcount(req, res, next) {
     try {
-      const user = await User.findById(req.params.id);
+      const user = await User.findById(req.user._id);
       checkResult(user, entityNotFound("Пользователь"));
-      if (JSON.stringify(user.owner) !== JSON.stringify(req.user._id)) {
-        throw new ForbiddenError(forbiddenAction);
-      }
       await User.deleteOne();
+      deleteJwt(res)
       return res.status(OK).send({ message: deletedUser });
     } catch (error) {
       if (error instanceof mongoose.Error.CastError) {
@@ -204,7 +186,7 @@ class userController {
   }
 
   async logout(req, res) {
-    res.cookie("jwt", "", { expires: new Date(0) });
+    deleteJwt(res)
     return res.status(OK).send({ message: logoutSuccess });
   }
 }

@@ -7,7 +7,6 @@ import config from "./config.js";
 const { NotFoundError, UnauthorizedError, BadRequestError } = ApiError;
 const { env, secretJwtKey, saltRounds } = config;
 const {
-  invalidEntityLength,
   hashingError,
   invalidCredentials,
 } = errorMessages;
@@ -29,14 +28,6 @@ function checkResult(result, errorMessage) {
   if (result === null) {
     throw NotFoundError(errorMessage);
   }
-}
-
-function checkStringLength(value, minLength, maxLength, entity){
-    if (value.length < minLength || value.length > maxLength) {
-        throw BadRequestError(
-          invalidEntityLength(entity, minLength, maxLength)
-        );
-      }
 }
 
 async function hashPassword(password) {
@@ -66,12 +57,16 @@ function normalizeEmail(email) {
   return email.toLowerCase();
 }
 
+function deleteJwt(jwt){
+  jwt.cookie("jwt", "", { expires: new Date(0) });
+}
+
 export default {
   normalizeEmail,
   comparisonsPassword,
   hashPassword,
-  checkStringLength,
   findById,
   generateToken,
   checkResult,
+  deleteJwt,
 };

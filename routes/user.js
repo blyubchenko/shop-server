@@ -1,6 +1,7 @@
 import { Router } from "express";
 import userController from "../controllers/user.js";
 import {isAdmin} from "../middleware/isAdmin.js";
+import {isAcces} from "../middleware/isAcces.js";
 import {validatePatchUserInfo, validatePatchUserRole, validateId} from "../middleware/validate.js"
 const {
   getUserById,
@@ -13,11 +14,11 @@ const {
 } = userController;
 const router = new Router();
 
-router.get("", isAdmin, getUsers);
+router.get("", isAcces, getUsers);
 router.get("/me", getUserInfo);
 router.patch("/me", validatePatchUserInfo, updateUserData);
 router.delete("/me", deleteAcount);
-router.get("/:id", validateId, isAdmin, getUserById);
+router.get("/:id", validateId, isAcces, getUserById);
 router.delete("/:id", isAdmin, validateId, deleteUser);
 router.patch("/:id", isAdmin, validateId, validatePatchUserRole, updateRoleUser);
 

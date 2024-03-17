@@ -11,5 +11,6 @@ const config = {
   descriptionProductLength: { minlength: 300, maxlength: 2000 },
   priceLength: { minlength: 1, maxlength: 100000 },
   saltRounds: 10,
+  secretUserKey: process.env.SUPER_USER_KEY || 'secret_user_key'
 };
 export default config;
