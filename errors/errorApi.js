@@ -32,4 +32,7 @@ export class ApiError extends Error {
   static ConflictError(message) {
     return new ApiError(CONFLICT, message);
   }
+  static MailSendingError(message) {
+    return new ApiError(SERVER_ERROR, message);
+  }
 }

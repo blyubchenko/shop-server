@@ -12,5 +12,7 @@ export const errorMessages = {
     deleteProduct: "Товар удалён",
     invalidProductId: "Некорректный идентификатор товара",
     accessIsdenied: "Доступ запрещен",
-    notAuthorized: "Необходима авторизация"
+    notAuthorized: "Необходима авторизация",
+    errorSendingEmail: "Ошибка отправки письма",
+    sendingEmailOk: "Отправлено письмо с подтверждением регистрации"
   };

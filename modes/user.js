@@ -36,6 +36,13 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin', 'moder'],
     default: 'user'
   },
+  confirmationToken: {
+    type: String,
+  },
+  confirmed: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now

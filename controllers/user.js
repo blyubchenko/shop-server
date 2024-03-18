@@ -3,19 +3,18 @@ import User from "../modes/user.js";
 import { statusCode } from "../errors/statusCode.js";
 import { ApiError } from "../errors/errorApi.js";
 import { errorMessages } from "../errors/messageError.js";
-import utils from "../utils.js";
-import config from "../config.js";
-
-const {
-  checkStringLength,
+import {
   checkResult,
   comparisonsPassword,
   findById,
   generateToken,
   hashPassword,
   normalizeEmail,
-  deleteJwt
-} = utils;
+  deleteJwt,
+  checkingKey,
+  sendConfirmationEmail
+} from "../utils.js";
+import config from "../config.js";
 
 const {
   duplicateEmail,
@@ -26,10 +25,12 @@ const {
   deletedUser,
   invalidUserId,
   entityNotFound,
+  sendingEmailOk,
+  errorSendingEmail,
 } = errorMessages;
-const { nameUserLength, passwordLength, secretUserKey } = config;
+const { secretAdminKey } = config;
 const { OK, CREATED } = statusCode;
-const { BadRequestError, ConflictError } = ApiError;
+const { BadRequestError, ConflictError, MailSendingError } = ApiError;
 
 class userController {
   async getUsers(req, res, next) {
@@ -60,16 +61,32 @@ class userController {
   async createUser(req, res, next) {
     try {
       const { name, password, email, role, secretKey } = req.body;
-      const checkKey = secretKey ===  secretUserKey ? role : 'user'
+
+      const { verifiedRole, confirmationToken, confirmed } = checkingKey(
+        secretAdminKey,
+        secretKey,
+        role
+      );
       const normalizedEmail = normalizeEmail(email);
       const cryptPassword = await hashPassword(password);
       await User.create({
         name,
         password: cryptPassword,
         email: normalizedEmail,
-        role: checkKey
+        role: verifiedRole,
+        confirmationToken,
+        confirmed,
       });
-      return res.status(CREATED).json({ name, email: normalizedEmail });
+      let responseSendingMail = 'Пользователь создан';
+      if(!confirmed){
+      responseSendingMail = await sendConfirmationEmail(normalizedEmail, confirmationToken)
+      }
+          return res.status(CREATED).json({
+            name,
+            email: normalizedEmail,
+            confirmed,
+            message: responseSendingMail,
+          });
     } catch (error) {
       if (error.code === 11000) {
         next(ConflictError(duplicateEmail));
@@ -121,10 +138,10 @@ class userController {
       );
       checkResult(user, entityNotFound("Пользователь"));
       return res.status(OK).json(user);
-    } catch (error){
+    } catch (error) {
       if (error instanceof mongoose.Error.CastError) {
         next(BadRequestError(invalidData));
-    }
+      }
       if (error instanceof mongoose.Error.ValidationError) {
         next(BadRequestError(invalidData));
       } else {
@@ -154,7 +171,7 @@ class userController {
       const user = await User.findById(req.user._id);
       checkResult(user, entityNotFound("Пользователь"));
       await User.deleteOne();
-      deleteJwt(res)
+      deleteJwt(res);
       return res.status(OK).send({ message: deletedUser });
     } catch (error) {
       if (error instanceof mongoose.Error.CastError) {
@@ -186,7 +203,7 @@ class userController {
   }
 
   async logout(req, res) {
-    deleteJwt(res)
+    deleteJwt(res);
     return res.status(OK).send({ message: logoutSuccess });
   }
 }

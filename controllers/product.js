@@ -3,9 +3,8 @@ import Product from "../modes/product.js";
 import { statusCode } from "../errors/statusCode.js";
 import { ApiError } from "../errors/errorApi.js";
 import { errorMessages } from "../errors/messageError.js";
-import utils from "../utils.js";
+import {checkResult, findById} from "../utils.js";
 
-const { checkResult, findById } = utils;
 const { invalidData, deleteProduct, invalidProductId, entityNotFound } = errorMessages;
 const { OK, CREATED } = statusCode;
 const { BadRequestError } = ApiError;
