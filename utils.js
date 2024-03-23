@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import config from "./config.js";
 import { v4 as uuidv4 } from "uuid";
 import nodemailer from "nodemailer";
-const { NotFoundError, UnauthorizedError, BadRequestError } = ApiError;
+const { NotFoundError, ForbidenError, UnauthorizedError, BadRequestError } = ApiError;
 const {
   env,
   secretJwtKey,
@@ -14,8 +14,11 @@ const {
   emailService,
   emailAdress,
   emailPassword,
+  secretAdminKey,
+  tokenLifetime,
+  curentDate,
 } = config;
-const { hashingError, invalidCredentials, sendingEmailOk, errorSendingEmail } =
+const { hashingError, accessIsdenied, invalidCredentials, sendingEmailOk, errorSendingEmail } =
   errorMessages;
 
 async function findById(model, id, errorMessage) {
@@ -37,16 +40,7 @@ function checkResult(result, errorMessage) {
   }
 }
 
-function checkingKey(adminKey, userKey, userRole) {
-  if (adminKey === userKey) {
-    return { verifiedRole: userRole, confirmationToken: null, confirmed: true };
-  } else {
-    const confirmationToken = uuidv4();
-    return { verifiedRole: "user", confirmationToken, confirmed: false };
-  }
-}
-
-async function sendConfirmationEmail(email, confirmationToken) {
+async function sendEmail(email, confirmationToken, script = false) {
   try {
     const transporter = nodemailer.createTransport({
       service: emailService,
@@ -59,11 +53,14 @@ async function sendConfirmationEmail(email, confirmationToken) {
     const mailOptions = {
       from: emailAdress,
       to: email,
-      subject: "Подтверждение регистрации",
-      text: `Для подтверждения регистрации перейдите по ссылке: http://localhost:3000/confirm/${confirmationToken}`,
+      subject: script ? "Сброс пароля" : "Подтверждение регистрации",
+      text: script
+        ? `Для сброса пароля скопируйте токен ${confirmationToken} и перейдите по ссылке: пока пусто. Зполните форму: в первое поле введите новый пароль, во второе поле введите новый пароль еще раз, в третье поле вставьте полученый в письме токен и нажмите кнопку подтверждения`
+        : "Для подтверждения регистрации " +
+          `перейдите по ссылке: http://localhost:3000/confirm/${confirmationToken}`,
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions);
     return sendingEmailOk;
   } catch (error) {
     throw MailSendingError(errorSendingEmail + error.message);
@@ -85,12 +82,20 @@ async function comparisonsPassword(password, hash) {
   }
 }
 
-function generateToken(userId, role) {
+function generateJwtToken(userId, role) {
   return jwt.sign(
     { _id: userId, role },
     env === "production" ? secretJwtKey : "dev-secret",
     { expiresIn: "7d" }
   );
+}
+
+function generateConfirmationToken() {
+  const token = uuidv4();
+  return {
+    token,
+    expiresAt: tokenLifetime,
+  };
 }
 
 function normalizeEmail(email) {
@@ -106,9 +111,9 @@ export {
   comparisonsPassword,
   hashPassword,
   findById,
-  generateToken,
+  generateJwtToken,
   checkResult,
   deleteJwt,
-  checkingKey,
-  sendConfirmationEmail,
+  sendEmail,
+  generateConfirmationToken,
 };

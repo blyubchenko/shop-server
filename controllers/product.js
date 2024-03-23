@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Product from "../modes/product.js";
+import Product from "../models/product.js";
 import { statusCode } from "../errors/statusCode.js";
 import { ApiError } from "../errors/errorApi.js";
 import { errorMessages } from "../errors/messageError.js";

@@ -83,13 +83,14 @@ const validatePatchUserInfo = celebrate({
 
 const validatePatchUserRole = celebrate({
   body: Joi.object().keys({
-    role: Joi.string().valid("user", "admin").required(),
+    role: Joi.string().valid("user", "admin", "moder").required(),
+    secretKey: Joi.string()
   }),
 });
 
 const validateLogin = celebrate({
   body: Joi.object().keys({
-    email: Joi.string().required().email(),
+    email: Joi.string().required().email({ allowUnicode: false }),
     password: Joi.string()
       .min(passwordLength.minlength)
       .max(passwordLength.maxlength)
@@ -110,9 +111,25 @@ const validatePostUser = celebrate({
       .regex(regPassword)
       .required(),
     role: Joi.string().valid("user", "admin", "moder"),
-    email: Joi.string().required().email(),
-    secretKey: Joi.string()
+    email: Joi.string().required().email({ allowUnicode: false }),
   }),
+});
+const validateRestPasswordConfirmation = celebrate({
+  body: Joi.object().keys({
+    token: Joi.string()
+      .length(36)
+      .required(),
+    password: Joi.string()
+      .min(passwordLength.minlength)
+      .max(passwordLength.maxlength)
+      .regex(regPassword)
+      .required(),
+     }),
+});
+const validatePasswordResetRequest = celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email({ allowUnicode: false }),
+     }),
 });
 
 export {
@@ -123,4 +140,6 @@ export {
   validatePatchUserRole,
   validateLogin,
   validatePostUser,
+  validatePasswordResetRequest,
+  validateRestPasswordConfirmation
 };

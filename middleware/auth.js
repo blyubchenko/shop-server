@@ -6,16 +6,15 @@ import {errorMessages} from "../errors/messageError.js"
 const { env ,secretJwtKey } = config;
 
 export const auth = async (req, res, next) => {
+  try {
   const token = req.cookies.jwt;
   if (!token) {
     return next(ApiError.UnauthorizedError(errorMessages.notAuthorized));
   }
-  let payload;
-  try {
-    payload = jwt.verify(token, env === 'production' ? secretJwtKey : 'dev-secret');
+   const payload = jwt.verify(token, env === 'production' ? secretJwtKey : 'dev-secret');
+   req.user = payload;
+   next();
   } catch (err) {
     return next(ApiError.UnauthorizedError(errorMessages.notAuthorized));
   }
-  req.user = payload;
-  next();
 };

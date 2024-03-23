@@ -1,10 +1,10 @@
-import mongoose from 'mongoose';
-import validator from 'validator';
-import config from '../config.js';
-import { errorMessages } from '../errors/messageError.js';
-const {invalidEmailFormat} = errorMessages
+import mongoose from "mongoose";
+import validator from "validator";
+import config from "../config.js";
+import { errorMessages } from "../errors/messageError.js";
+const { invalidEmailFormat } = errorMessages;
 
-const {nameUserLength, passwordLength, saltRounds} = config;
+const { nameUserLength, passwordLength, saltRounds, tokenLifetime } = config;
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -33,20 +33,23 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'moder'],
-    default: 'user'
-  },
-  confirmationToken: {
-    type: String,
+    enum: ["user", "admin", "moder"],
+    default: "user",
   },
   confirmed: {
     type: Boolean,
-    default: false
+    default: false,
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
+    expiresAt: {
+      type: Date,
+      expires: 60,
+    },
 });
+userSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-export default mongoose.model('User', userSchema);
+
+export default mongoose.model("User", userSchema);
