@@ -13,11 +13,13 @@ const { BadRequestError } = ApiError;
 class productController {
   async getProducts(req, res, next) {
     try {
-      const { type } = req.body;
+      const { type, limit = 10, page = 1 } = req.query;
+
+      let offset = page * limit - limit;
       let products;
       type
-        ? (products = await Product.find({ type }))
-        : (products = await Product.find({}));
+        ? (products = await Product.find({ type }).limit(limit).skip(offset))
+        : (products = await Product.find({}).limit(limit).skip(offset));
       return res.status(OK).json(products);
     } catch (error) {
       next(error);

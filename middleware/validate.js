@@ -18,7 +18,7 @@ const validateId = celebrate({
 });
 
 const validateGetProducts = celebrate({
-  body: Joi.object().keys({
+  query: Joi.object().keys({
     type: Joi.string()
     .valid(
       "bag",
@@ -28,7 +28,9 @@ const validateGetProducts = celebrate({
       "watchband",
       "accessorie",
       "clutch"
-    )
+    ),
+    limit: Joi.number().min(1).max(100),
+    page: Joi.number().min(1).max(1000)
   })
 })
 
