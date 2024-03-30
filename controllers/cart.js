@@ -76,11 +76,9 @@ class cartController {
       const productAvailable = checkProductQuantity(quantity, product.quantity);
       cart.items[presenceProductId].quantity = productAvailable.amount;
       await cart.save();
-      return res
-        .status(OK)
-        .json({
-          message: `Количество товара в корзине: ${productAvailable.amount}шт, ${productAvailable.message}шт`,
-        });
+      return res.status(OK).json({
+        message: `Количество товара в корзине: ${productAvailable.amount}шт, ${productAvailable.message}шт`,
+      });
     } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {
         next(BadRequestError(invalidData));
@@ -133,13 +131,21 @@ class cartController {
 
   async transferCartItems(userId) {
     try {
-      const temporaryCart = await TemporaryCart.findOne()
+      const temporaryCart = await TemporaryCart.findOne();
       if (temporaryCart) {
         const userCart = await getOrCreateCart(userId);
-        userCart.items.push(...temporaryCart.items);
+        const userCartItemsIds = userCart.items.map((item) =>
+          item.productId.toString()
+        );
+        temporaryCart.items.forEach((tempCartitem) => {
+          const temporaryCartItemsIds = tempCartitem.productId.toString();
+          if (!userCartItemsIds.includes(temporaryCartItemsIds)) {
+            userCart.items.push(tempCartitem);
+          }
+        });
         await userCart.save();
-        temporaryCart.expiresAt = new Date()
-        await temporaryCart.save()
+        temporaryCart.expiresAt = new Date();
+        await temporaryCart.save();
       }
     } catch (error) {
       throw error;
