@@ -1,5 +1,5 @@
 import config from "../config.js";
-const {tokenLifetimeinMinute} = config;
+const {tokenLifetimeInMinute} = config;
 export const errorMessages = {
     entityNotFound: (entity) => `${entity} с указанным id не найден`,
     invalidUserId: "Некорректный идентификатор пользователя",
@@ -13,10 +13,12 @@ export const errorMessages = {
     deletedUser: "Пользователь удалён",
     hashingError: "Ошибка хеширования",
     deleteProduct: "Товар удалён",
+    productWasNotFound: "Товар не найден",
     invalidProductId: "Некорректный идентификатор товара",
     accessIsdenied: "Доступ запрещен",
+    unconfirmedMail: "Почта не подтвержена, подтвердите email",
     notAuthorized: "Необходима авторизация",
     errorSendingEmail: "Ошибка отправки письма",
-    sendingEmailOk: `На ваш email отправлено письмо с подтверждением регистрции. Подтвердите почту в течении ${tokenLifetimeinMinute} минут`,
+    sendingEmailOk: `На ваш email отправлено письмо с подтверждением регистрции. Подтвердите почту в течении ${tokenLifetimeInMinute} минут`,
     resetPasswordInstructions: 'Инструкции по сбросу пароля отправлены на ваш email', 
   };

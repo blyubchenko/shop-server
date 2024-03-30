@@ -19,6 +19,6 @@ router.patch("/me", validatePatchUserInfo, updateUserData);
 router.delete("/me", deleteAcount);
 router.get("/:id", isAcces('admin', 'moder'), validateId, getUserById);
 router.delete("/:id", isAcces('admin'), validateId, deleteUser);
-router.patch("/:id", isAcces('admin'), validateId, validatePatchUserRole, updateRoleUser);
+router.patch("/:id", validateId, validatePatchUserRole, updateRoleUser);
 
 export default router;

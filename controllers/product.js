@@ -3,16 +3,25 @@ import Product from "../models/product.js";
 import { statusCode } from "../errors/statusCode.js";
 import { ApiError } from "../errors/errorApi.js";
 import { errorMessages } from "../errors/messageError.js";
-import {checkResult, findById} from "../utils.js";
+import { checkResult, findById } from "../utils.js";
 
-const { invalidData, deleteProduct, invalidProductId, entityNotFound } = errorMessages;
+const { invalidData, deleteProduct, invalidProductId, entityNotFound } =
+  errorMessages;
 const { OK, CREATED } = statusCode;
 const { BadRequestError } = ApiError;
 
 class productController {
   async getProducts(req, res, next) {
-    const product = await Product.find({});
-    return res.status(OK).json(product);
+    try {
+      const { type } = req.body;
+      let products;
+      type
+        ? (products = await Product.find({ type }))
+        : (products = await Product.find({}));
+      return res.status(OK).json(products);
+    } catch (error) {
+      next(error);
+    }
   }
 
   async getProductById(req, res, next) {
@@ -27,7 +36,7 @@ class productController {
 
   async createProduct(req, res, next) {
     try {
-      const product = await Product.create({...req.body});
+      const product = await Product.create({ ...req.body });
       return res.status(CREATED).json(product);
     } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {

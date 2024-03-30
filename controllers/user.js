@@ -4,7 +4,7 @@ import Token from "../models/token.js";
 import { statusCode } from "../errors/statusCode.js";
 import { ApiError } from "../errors/errorApi.js";
 import { errorMessages } from "../errors/messageError.js";
-import { v4 as uuidv4 } from "uuid";
+import cartController from './cart.js';
 import {
   checkResult,
   comparisonsPassword,
@@ -15,6 +15,7 @@ import {
   deleteJwt,
   sendEmail,
   generateConfirmationToken,
+  setJwtCookie
 } from "../utils.js";
 
 const {
@@ -28,8 +29,10 @@ const {
   entityNotFound,
   emailNotFound,
   resetPasswordInstructions,
+  unconfirmedMail
 } = errorMessages;
 
+const {transferCartItems} = cartController;
 const { OK, CREATED } = statusCode;
 const { BadRequestError, ConflictError } = ApiError;
 
@@ -139,6 +142,8 @@ class userController {
         }
       );
       checkResult(user, entityNotFound("Пользователь"));
+        const token = generateJwtToken(user._id, role)
+        setJwtCookie(res, token)
       return res.status(OK).json(user);
     } catch (error) {
       if (error instanceof mongoose.Error.CastError) {
@@ -192,12 +197,11 @@ class userController {
         "+password"
       );
       checkResult(user, invalidCredentials);
+      checkResult(user.confirmed, unconfirmedMail)
       await comparisonsPassword(password, user.password);
       const token = generateJwtToken(user._id, user.role);
-      res.cookie("jwt", token, {
-        maxAge: 3600000 * 24 * 7,
-        httpOnly: true,
-      });
+      setJwtCookie(res, token)
+      transferCartItems(user._id)
       return res.status(OK).send({ message: loginSuccess });
     } catch (error) {
       next(error);

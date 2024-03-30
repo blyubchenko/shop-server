@@ -1,19 +1,19 @@
-import jwt from 'jsonwebtoken';
-import {ApiError} from '../errors/errorApi.js';
-import config from '../config.js';
-import {errorMessages} from "../errors/messageError.js"
+import { ApiError } from "../errors/errorApi.js";
+import config from "../config.js";
+import { errorMessages } from "../errors/messageError.js";
+import { checkJwtToken } from "../utils.js";
 
-const { env ,secretJwtKey } = config;
+const { env, secretJwtKey } = config;
 
 export const auth = async (req, res, next) => {
   try {
-  const token = req.cookies.jwt;
-  if (!token) {
-    return next(ApiError.UnauthorizedError(errorMessages.notAuthorized));
-  }
-   const payload = jwt.verify(token, env === 'production' ? secretJwtKey : 'dev-secret');
-   req.user = payload;
-   next();
+    const payload = checkJwtToken(req, env, secretJwtKey);
+    if(payload){
+      req.user = payload
+      next()
+    } else {
+      next(ApiError.UnauthorizedError(errorMessages.notAuthorized));
+    }
   } catch (err) {
     return next(ApiError.UnauthorizedError(errorMessages.notAuthorized));
   }

@@ -17,6 +17,21 @@ const validateId = celebrate({
   }),
 });
 
+const validateGetProducts = celebrate({
+  body: Joi.object().keys({
+    type: Joi.string()
+    .valid(
+      "bag",
+      "wallet",
+      "docholder",
+      "belt",
+      "watchband",
+      "accessorie",
+      "clutch"
+    )
+  })
+})
+
 const validatePostProduct = celebrate({
   body: Joi.object().keys({
     name: Joi.string()
@@ -84,7 +99,7 @@ const validatePatchUserInfo = celebrate({
 const validatePatchUserRole = celebrate({
   body: Joi.object().keys({
     role: Joi.string().valid("user", "admin", "moder").required(),
-    secretKey: Joi.string()
+    secretKey: Joi.string().required()
   }),
 });
 
@@ -131,6 +146,11 @@ const validatePasswordResetRequest = celebrate({
     email: Joi.string().required().email({ allowUnicode: false }),
      }),
 });
+const validateUpdateQuantityProductInCart = celebrate({
+  body: Joi.object().keys({
+    quantity: Joi.number().required(),
+     }),
+});
 
 export {
   validateId,
@@ -141,5 +161,7 @@ export {
   validateLogin,
   validatePostUser,
   validatePasswordResetRequest,
-  validateRestPasswordConfirmation
+  validateRestPasswordConfirmation,
+  validateGetProducts,
+  validateUpdateQuantityProductInCart
 };

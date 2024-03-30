@@ -6,7 +6,10 @@ import jwt from "jsonwebtoken";
 import config from "./config.js";
 import { v4 as uuidv4 } from "uuid";
 import nodemailer from "nodemailer";
-const { NotFoundError, ForbidenError, UnauthorizedError, BadRequestError } = ApiError;
+import Cart from "./models/cart.js";
+import TemporaryCart from "./models/temporaryCart.js";
+const { NotFoundError, UnauthorizedError, BadRequestError } =
+  ApiError;
 const {
   env,
   secretJwtKey,
@@ -14,11 +17,9 @@ const {
   emailService,
   emailAdress,
   emailPassword,
-  secretAdminKey,
   tokenLifetime,
-  curentDate,
 } = config;
-const { hashingError, accessIsdenied, invalidCredentials, sendingEmailOk, errorSendingEmail } =
+const { hashingError, invalidCredentials, sendingEmailOk, errorSendingEmail } =
   errorMessages;
 
 async function findById(model, id, errorMessage) {
@@ -35,9 +36,34 @@ async function findById(model, id, errorMessage) {
 }
 
 function checkResult(result, errorMessage) {
-  if (result === null) {
+  if (result === null || result === false || result === 0) {
     throw NotFoundError(errorMessage);
   }
+}
+
+function checkProductQuantity(quantity, productQuantity) {
+  const productBalance = Math.max(productQuantity - quantity, 0);
+  if (productQuantity >= quantity){
+    return {amount: quantity, message: `Доступный остаток товара: ${productBalance}`}
+  } if (productQuantity < quantity){
+    return {amount: productQuantity, message: `Доступный остаток товара: ${productBalance}`}
+  }
+}
+
+async function getOrCreateCart(userId = false){
+  let cart;
+  if (userId) {
+    cart = await Cart.findOne({ userId: userId });
+    if (!cart) {
+      cart = await Cart.create({ userId: userId, items: [] });
+    }
+  } else {
+    cart = await TemporaryCart.findOne();
+    if (!cart) {
+      cart = await TemporaryCart.create({ items: [] });
+    }
+  }
+  return cart
 }
 
 async function sendEmail(email, confirmationToken, script = false) {
@@ -90,6 +116,23 @@ function generateJwtToken(userId, role) {
   );
 }
 
+function checkJwtToken(req, env, secretJwtKey) {
+  if (req.cookies?.jwt) {
+    const token = req.cookies.jwt;
+    const payload = jwt.verify(token, env === 'production' ? secretJwtKey : 'dev-secret');
+    return payload;
+  } else{
+    return false;
+  }
+}
+
+function setJwtCookie(res, token) {
+  res.cookie("jwt", token, {
+    maxAge: 3600000 * 24 * 7,
+    httpOnly: true,
+  });
+}
+
 function generateConfirmationToken() {
   const token = uuidv4();
   return {
@@ -116,4 +159,8 @@ export {
   deleteJwt,
   sendEmail,
   generateConfirmationToken,
+  checkProductQuantity,
+  getOrCreateCart,
+  setJwtCookie,
+  checkJwtToken
 };
