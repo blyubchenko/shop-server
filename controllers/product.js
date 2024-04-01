@@ -3,18 +3,17 @@ import Product from "../models/product.js";
 import { statusCode } from "../errors/statusCode.js";
 import { ApiError } from "../errors/errorApi.js";
 import { errorMessages } from "../errors/messageError.js";
-import { checkResult, findById } from "../utils.js";
+import { checkResult, saveImages, findById, handleNewImages } from "../utils.js";
 
 const { invalidData, deleteProduct, invalidProductId, entityNotFound } =
   errorMessages;
 const { OK, CREATED } = statusCode;
-const { BadRequestError } = ApiError;
+const { BadRequestError, ConflictError } = ApiError;
 
 class productController {
   async getProducts(req, res, next) {
     try {
       const { type, limit = 10, page = 1 } = req.query;
-
       let offset = page * limit - limit;
       let products;
       type
@@ -38,9 +37,13 @@ class productController {
 
   async createProduct(req, res, next) {
     try {
-      const product = await Product.create({ ...req.body });
+      const images = await handleNewImages(req);
+      const product = await Product.create({img:images, ...req.body });
       return res.status(CREATED).json(product);
     } catch (error) {
+      if (error.code === 11000) {
+        next(ConflictError("Не уникальное имя товара"));
+      }
       if (error instanceof mongoose.Error.ValidationError) {
         next(BadRequestError(invalidData));
       } else {
@@ -53,17 +56,17 @@ class productController {
     try {
       const { name, description, price, material, color, type, quantity } =
         req.body;
-      const product = await Product.findByIdAndUpdate(
-        req.params.id,
-        { $set: { name, description, price, material, color, type, quantity } },
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
-      checkResult(product, entityNotFound("Товар"));
+        const images = await handleNewImages(req);
+        const product = await Product.findByIdAndUpdate(
+          req.params.id,
+          { $set: { name, description, price, material, color, type, quantity }, $push: { img: images } },
+          {new: true, runValidators: true});
+          checkResult(product, entityNotFound("Товар"));
       return res.status(OK).json(product);
     } catch (error) {
+      if (error.code === 11000) {
+        next(ConflictError("Не уникальное имя товара"));
+      }
       if (error instanceof mongoose.Error.ValidationError) {
         next(BadRequestError(invalidData));
       } else {

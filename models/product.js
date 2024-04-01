@@ -5,7 +5,8 @@ const {nameProductLength, descriptionProductLength, priceLength} = config;
 const productShema = new mongoose.Schema({
   name: {
     type: String,
-    require: true,
+    required: true,
+    unique: true,
     minlength: nameProductLength.minlength,
     maxlength: nameProductLength.maxlength,
     trim: true,
@@ -27,6 +28,9 @@ const productShema = new mongoose.Schema({
     type: String,
     default: "leather",
   },
+  img: [{
+    type: String,
+  }],
   color: {
     type: String,
     default: "black",

@@ -23,6 +23,7 @@ const config = {
   tokenLifetimeInMinute: convertingTime(timeСonfirmationToken, 'm'), // Время жизни токена подтверждения почты (в минутах) - для email пользователю
   curentDate: new Date().getTime(), // Текущее время в миллисекундах
   lifetimeTemporaryCart: convertingTime(timeTemporalCart, 'ms'), // Время жизни временной корзины для незарегистрированных пользователей (в минутах)
+  maxImagesProduct: 10, //Максимальное колличество изображений для одного товара
 };
 export default config;
 

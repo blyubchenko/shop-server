@@ -8,6 +8,12 @@ import { v4 as uuidv4 } from "uuid";
 import nodemailer from "nodemailer";
 import Cart from "./models/cart.js";
 import TemporaryCart from "./models/temporaryCart.js";
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const { NotFoundError, UnauthorizedError, BadRequestError } =
   ApiError;
 const {
@@ -47,6 +53,41 @@ function checkProductQuantity(quantity, productQuantity) {
     return {amount: quantity, message: `Доступный остаток товара: ${productBalance}`}
   } if (productQuantity < quantity){
     return {amount: productQuantity, message: `Доступный остаток товара: ${productBalance}`}
+  }
+}
+function  saveImages (images) {
+  const imageNames = [];
+  const productImagePath = path.resolve(__dirname, 'static');
+  if (!fs.existsSync(productImagePath)) {
+    fs.mkdirSync(productImagePath, { recursive: true });
+  }
+  images.forEach(image => {
+    let fileExtension = '.jpg';
+    switch (true) {
+      case image.mimetype === 'image/jpeg':
+        fileExtension = '.jpg';
+        break;
+      case image.mimetype === 'image/png':
+        fileExtension = '.png';
+        break;
+      case image.mimetype === 'image/webp':
+        fileExtension = '.webp';
+        break;
+      default:
+        break;
+    }
+    const imgName = uuidv4() + fileExtension;
+    image.mv(path.resolve(productImagePath, imgName))
+    imageNames.push(imgName);
+  });
+  return imageNames;
+}
+
+async function handleNewImages(req) {
+  if (req?.files) {
+    const { img } = req.files;
+    const images = Array.isArray(img) ? saveImages(img) : saveImages([img]);
+    return images
   }
 }
 
@@ -162,5 +203,7 @@ export {
   checkProductQuantity,
   getOrCreateCart,
   setJwtCookie,
-  checkJwtToken
+  checkJwtToken,
+  saveImages,
+  handleNewImages
 };

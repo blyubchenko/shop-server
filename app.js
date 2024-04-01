@@ -6,15 +6,23 @@ import router from "./routes/index.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import cookieParser from 'cookie-parser';
 import {errors} from "celebrate"
+import fileupload from "express-fileupload"
 import {celebrateHandler} from "./middleware/celebrateHandler.js"
 import { requestLogger, errorLogger } from "./middleware/logger.js";
+import path from 'path'
+import { fileURLToPath } from 'url';
 
-const {port, urlDb} = config;
+const { port, urlDb } = config;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cookieParser())
 app.use(cors())
 app.use(express.json());
+app.use(express.static(path.resolve(__dirname, 'static')))
+app.use(fileupload({limits: {fileSize: 20971520}}))
 app.use(requestLogger)
 app.use(router);
 app.use(errorLogger)
