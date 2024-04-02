@@ -3,12 +3,24 @@ import Product from "../models/product.js";
 import { statusCode } from "../errors/statusCode.js";
 import { ApiError } from "../errors/errorApi.js";
 import { errorMessages } from "../errors/messageError.js";
-import { checkResult, saveImages, findById, handleNewImages } from "../utils.js";
+import {
+  checkResult,
+  findById,
+  processImages,
+  normalizeImageArray,
+  deleteImagesFromFS
+} from "../utils.js";
+import config from "../config.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const { maxImagesProduct } = config;
 const { invalidData, deleteProduct, invalidProductId, entityNotFound } =
   errorMessages;
 const { OK, CREATED } = statusCode;
-const { BadRequestError, ConflictError } = ApiError;
+const { BadRequestError, ConflictError, NotFoundError } = ApiError;
 
 class productController {
   async getProducts(req, res, next) {
@@ -37,13 +49,45 @@ class productController {
 
   async createProduct(req, res, next) {
     try {
-      const images = await handleNewImages(req);
-      const product = await Product.create({img:images, ...req.body });
+      const images = processImages(req);
+      const product = await Product.create({ img: images, ...req.body });
       return res.status(CREATED).json(product);
     } catch (error) {
-      if (error.code === 11000) {
-        next(ConflictError("Не уникальное имя товара"));
-      }
+      next(error);
+    }
+  }
+
+  async pathProductInfo(req, res, next) {
+    try {
+      const product = await Product.findByIdAndUpdate(
+        req.params.id,
+        { $set: { ...req.body } },
+        { new: true, runValidators: true }
+      );
+      checkResult(product, entityNotFound("Товар"));
+      return res.status(OK).json(product);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async pathProductImage(req, res, next) {
+    try {
+        const product = await Product.findById(req.params.id);
+        checkResult(product, entityNotFound("Товар"));
+
+        const remainingImageSlots = maxImagesProduct - product.img.length;
+        const imageArr = normalizeImageArray(req.files.img);
+        if (remainingImageSlots < imageArr.length) {
+          return next(
+            ConflictError(`Изображений доступно для загрузки: ${remainingImageSlots} из ${maxImagesProduct}`))
+        } else {
+          const images = processImages(req);
+          product.img = [...product.img, ...images]
+          await product.save()
+        }
+      return res.status(OK).json(product);
+    } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {
         next(BadRequestError(invalidData));
       } else {
@@ -52,26 +96,20 @@ class productController {
     }
   }
 
-  async updateProductData(req, res, next) {
+  async deleteProductImage(req, res, next) {
     try {
-      const { name, description, price, material, color, type, quantity } =
-        req.body;
-        const images = await handleNewImages(req);
-        const product = await Product.findByIdAndUpdate(
-          req.params.id,
-          { $set: { name, description, price, material, color, type, quantity }, $push: { img: images } },
-          {new: true, runValidators: true});
-          checkResult(product, entityNotFound("Товар"));
-      return res.status(OK).json(product);
+      const { id } = req.params;
+      const { arrayImageNames } = req.body;
+      const product = await Product.findById(id);
+      const images = product.img.filter(
+        (image) => !arrayImageNames.includes(image)
+      );
+      product.img = images;
+      await product.save();
+      deleteImagesFromFS(arrayImageNames)
+      return res.status(OK).json({ message: "Изображения успешно удалены" });
     } catch (error) {
-      if (error.code === 11000) {
-        next(ConflictError("Не уникальное имя товара"));
-      }
-      if (error instanceof mongoose.Error.ValidationError) {
-        next(BadRequestError(invalidData));
-      } else {
-        next(error);
-      }
+      next(error);
     }
   }
 
@@ -80,6 +118,7 @@ class productController {
       const { id } = req.params;
       const product = await findById(Product, id, invalidProductId);
       checkResult(product, entityNotFound("Товар"));
+      deleteImagesFromFS(product.img)
       await Product.deleteOne(product);
       return res.status(OK).json({ message: deleteProduct });
     } catch (error) {

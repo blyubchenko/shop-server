@@ -8,13 +8,13 @@ import { v4 as uuidv4 } from "uuid";
 import nodemailer from "nodemailer";
 import Cart from "./models/cart.js";
 import TemporaryCart from "./models/temporaryCart.js";
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const { NotFoundError, UnauthorizedError, BadRequestError } =
+const { NotFoundError, UnauthorizedError, BadRequestError, ConflictError } =
   ApiError;
 const {
   env,
@@ -49,49 +49,74 @@ function checkResult(result, errorMessage) {
 
 function checkProductQuantity(quantity, productQuantity) {
   const productBalance = Math.max(productQuantity - quantity, 0);
-  if (productQuantity >= quantity){
-    return {amount: quantity, message: `Доступный остаток товара: ${productBalance}`}
-  } if (productQuantity < quantity){
-    return {amount: productQuantity, message: `Доступный остаток товара: ${productBalance}`}
+  if (productQuantity >= quantity) {
+    return {
+      amount: quantity,
+      message: `Доступный остаток товара: ${productBalance}`,
+    };
+  }
+  if (productQuantity < quantity) {
+    return {
+      amount: productQuantity,
+      message: `Доступный остаток товара: ${productBalance}`,
+    };
   }
 }
-function  saveImages (images) {
+function normalizeImageArray(image) {
+  const imageArr = Array.isArray(image) ? image : [image];
+  return imageArr;
+}
+
+function generateImageName(images) {
   const imageNames = [];
-  const productImagePath = path.resolve(__dirname, 'static');
-  if (!fs.existsSync(productImagePath)) {
-    fs.mkdirSync(productImagePath, { recursive: true });
-  }
-  images.forEach(image => {
-    let fileExtension = '.jpg';
+  const imageArr = normalizeImageArray(images);
+  imageArr.forEach((image) => {
+    let fileExtension = ".jpg";
     switch (true) {
-      case image.mimetype === 'image/jpeg':
-        fileExtension = '.jpg';
+      case image.mimetype === "image/jpeg":
+        fileExtension = ".jpg";
         break;
-      case image.mimetype === 'image/png':
-        fileExtension = '.png';
+      case image.mimetype === "image/png":
+        fileExtension = ".png";
         break;
-      case image.mimetype === 'image/webp':
-        fileExtension = '.webp';
+      case image.mimetype === "image/webp":
+        fileExtension = ".webp";
         break;
       default:
         break;
     }
     const imgName = uuidv4() + fileExtension;
-    image.mv(path.resolve(productImagePath, imgName))
     imageNames.push(imgName);
   });
   return imageNames;
 }
 
-async function handleNewImages(req) {
-  if (req?.files) {
-    const { img } = req.files;
-    const images = Array.isArray(img) ? saveImages(img) : saveImages([img]);
-    return images
+function processImages(req) {
+  const staticDir = path.resolve(__dirname, "./static");
+  if (!fs.existsSync(staticDir)) {
+    fs.mkdirSync(staticDir, { recursive: true });
   }
+  const images = generateImageName(req.files.img);
+  for (const imageName of images) {
+    const filePath = path.join(staticDir, imageName);
+    fs.writeFileSync(filePath, imageName);
+  }
+  return images;
 }
 
-async function getOrCreateCart(userId = false){
+function deleteImagesFromFS(imageNames) {
+  const staticDir = path.resolve(__dirname, "./static");
+  imageNames.forEach((imageName) => {
+    const filePath = path.join(staticDir, imageName);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    } else {
+      throw NotFoundError("Файл не существует");
+    }
+  });
+}
+
+async function getOrCreateCart(userId = false) {
   let cart;
   if (userId) {
     cart = await Cart.findOne({ userId: userId });
@@ -104,7 +129,7 @@ async function getOrCreateCart(userId = false){
       cart = await TemporaryCart.create({ items: [] });
     }
   }
-  return cart
+  return cart;
 }
 
 async function sendEmail(email, confirmationToken, script = false) {
@@ -160,9 +185,12 @@ function generateJwtToken(userId, role) {
 function checkJwtToken(req, env, secretJwtKey) {
   if (req.cookies?.jwt) {
     const token = req.cookies.jwt;
-    const payload = jwt.verify(token, env === 'production' ? secretJwtKey : 'dev-secret');
+    const payload = jwt.verify(
+      token,
+      env === "production" ? secretJwtKey : "dev-secret"
+    );
     return payload;
-  } else{
+  } else {
     return false;
   }
 }
@@ -204,6 +232,8 @@ export {
   getOrCreateCart,
   setJwtCookie,
   checkJwtToken,
-  saveImages,
-  handleNewImages
+  generateImageName,
+  processImages,
+  normalizeImageArray,
+  deleteImagesFromFS
 };

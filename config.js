@@ -15,15 +15,17 @@ const config = {
   descriptionProductLength: { minlength: 300, maxlength: 2000 }, // Длина описания продукта (минимальная и максимальная)
   priceLength: { minlength: 1, maxlength: 100000 }, // Диапазон цены продукта (минимальная и максимальная)
   saltRounds: 10, // Количество раундов для хеширования пароля (для bcrypt)
-  lifeTimeJwt: convertingTime(timeJwtToken, 'ms'), // Время жизни токена авторизации (в миллисекундах)
+  lifeTimeJwt: convertingTime(timeJwtToken, "ms"), // Время жизни токена авторизации (в миллисекундах)
   emailAdress: process.env.EMAIL_ADRESS || "youAdress@mail.ru", // Адрес электронной почты для отправки уведомлений
   emailService: process.env.EMAIL_SERVICE || "mail", // Сервис электронной почты для отправки уведомлений
   emailPassword: process.env.EMAIL_PASSWORD || "superPassword", // Пароль для доступа к сервису электронной почты
-  tokenLifetime: convertingTime(timeСonfirmationToken, 'ms'), // Время жизни токена подтверждения почты (в миллисекундах) - для db
-  tokenLifetimeInMinute: convertingTime(timeСonfirmationToken, 'm'), // Время жизни токена подтверждения почты (в минутах) - для email пользователю
+  tokenLifetime: convertingTime(timeСonfirmationToken, "ms"), // Время жизни токена подтверждения почты (в миллисекундах) - для db
+  tokenLifetimeInMinute: convertingTime(timeСonfirmationToken, "m"), // Время жизни токена подтверждения почты (в минутах) - для email пользователю
   curentDate: new Date().getTime(), // Текущее время в миллисекундах
-  lifetimeTemporaryCart: convertingTime(timeTemporalCart, 'ms'), // Время жизни временной корзины для незарегистрированных пользователей (в минутах)
+  lifetimeTemporaryCart: convertingTime(timeTemporalCart, "ms"), // Время жизни временной корзины для незарегистрированных пользователей (в минутах)
   maxImagesProduct: 10, //Максимальное колличество изображений для одного товара
+  allowedImageTypes: ["image/png", "image/jpeg", "image/webp"],
+  maxImageSize: 5242880,
 };
 export default config;
 

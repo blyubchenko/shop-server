@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import config from "../config.js";
-const {nameProductLength, descriptionProductLength, priceLength} = config;
+const {nameProductLength, descriptionProductLength, priceLength, maxImagesProduct} = config;
 
 const productShema = new mongoose.Schema({
   name: {
