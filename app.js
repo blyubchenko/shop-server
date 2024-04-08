@@ -22,7 +22,7 @@ app.use(cookieParser())
 app.use(cors())
 app.use(express.json());
 app.use(express.static(path.resolve(__dirname, 'static')))
-app.use(fileupload({limits: {fileSize: 5242880}}))
+app.use(fileupload())
 app.use(requestLogger)
 app.use(router);
 app.use(errorLogger)

@@ -6,21 +6,56 @@ import { errorMessages } from "../errors/messageError.js";
 import {
   checkResult,
   findById,
-  processImages,
-  normalizeImageArray,
-  deleteImagesFromFS
+  storeMediaLocally,
+  normalizeFileArray,
+  deleteMediaFromFS
 } from "../utils.js";
 import config from "../config.js";
-import path from "path";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const { maxImagesProduct } = config;
+const { maxImagesProduct, maxVideosProduct, mimeTypesImages, mimeTypesVideos } = config;
 const { invalidData, deleteProduct, invalidProductId, entityNotFound } =
   errorMessages;
 const { OK, CREATED } = statusCode;
-const { BadRequestError, ConflictError, NotFoundError } = ApiError;
+const { BadRequestError, ConflictError } = ApiError;
+
+async function patchProductMedia(req, res, next, mediaType) {
+  try {
+    const product = await Product.findById(req.params.id);
+    checkResult(product, entityNotFound("Товар"));
+
+    const mediaConfig = {
+      img: {
+        maxSlots: maxImagesProduct,
+        mimeTypes: mimeTypesImages,
+        fieldName: 'img'
+      },
+      video: {
+        maxSlots: maxVideosProduct,
+        mimeTypes: mimeTypesVideos,
+        fieldName: 'video'
+      }
+    };
+
+    const config = mediaConfig[mediaType];
+    const remainingSlots = config.maxSlots - product[config.fieldName].length;
+    const mediaArr = normalizeFileArray(req.files[mediaType]);
+    if (remainingSlots < mediaArr.length) {
+      return next(
+        ConflictError(`${mediaType} доступно для загрузки: ${remainingSlots} из ${config.maxSlots}`))
+    } else {
+      const mediaFiles = storeMediaLocally(req.files[mediaType], config.mimeTypes);
+      product[config.fieldName] = [...product[config.fieldName], ...mediaFiles];
+      await product.save();
+    }
+    return res.status(OK).json(product);
+  } catch (error) {
+    if (error instanceof mongoose.Error.ValidationError) {
+      next(BadRequestError(invalidData));
+    } else {
+      next(error);
+    }
+  }
+}
 
 class productController {
   async getProducts(req, res, next) {
@@ -49,15 +84,16 @@ class productController {
 
   async createProduct(req, res, next) {
     try {
-      const images = processImages(req);
-      const product = await Product.create({ img: images, ...req.body });
+      const images = storeMediaLocally(req.files.img, mimeTypesImages);
+      const videos = storeMediaLocally(req.files.video, mimeTypesVideos);
+      const product = await Product.create({ img: images, video: videos, ...req.body });
       return res.status(CREATED).json(product);
     } catch (error) {
       next(error);
     }
   }
 
-  async pathProductInfo(req, res, next) {
+  async patchProductInfo (req, res, next) {
     try {
       const product = await Product.findByIdAndUpdate(
         req.params.id,
@@ -71,29 +107,12 @@ class productController {
     }
   }
 
-  async pathProductImage(req, res, next) {
-    try {
-        const product = await Product.findById(req.params.id);
-        checkResult(product, entityNotFound("Товар"));
-
-        const remainingImageSlots = maxImagesProduct - product.img.length;
-        const imageArr = normalizeImageArray(req.files.img);
-        if (remainingImageSlots < imageArr.length) {
-          return next(
-            ConflictError(`Изображений доступно для загрузки: ${remainingImageSlots} из ${maxImagesProduct}`))
-        } else {
-          const images = processImages(req);
-          product.img = [...product.img, ...images]
-          await product.save()
-        }
-      return res.status(OK).json(product);
-    } catch (error) {
-      if (error instanceof mongoose.Error.ValidationError) {
-        next(BadRequestError(invalidData));
-      } else {
-        next(error);
-      }
-    }
+  async patchProductImage(req, res, next) {
+    await patchProductMedia(req, res, next, 'img');
+  }
+  
+  async patchProductVideo(req, res, next) {
+    await patchProductMedia(req, res, next, 'video');
   }
 
   async deleteProductImage(req, res, next) {
@@ -106,8 +125,25 @@ class productController {
       );
       product.img = images;
       await product.save();
-      deleteImagesFromFS(arrayImageNames)
+      deleteMediaFromFS(arrayImageNames)
       return res.status(OK).json({ message: "Изображения успешно удалены" });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteProductVideo(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { arrayVideoNames } = req.body;
+      const product = await Product.findById(id);
+      const videos = product.video.filter(
+        (video) => !arrayVideoNames.includes(video)
+      );
+      product.video = videos;
+      await product.save();
+      deleteMediaFromFS(arrayVideoNames)
+      return res.status(OK).json({ message: "Видео успешно удалены" });
     } catch (error) {
       next(error);
     }
@@ -118,7 +154,8 @@ class productController {
       const { id } = req.params;
       const product = await findById(Product, id, invalidProductId);
       checkResult(product, entityNotFound("Товар"));
-      deleteImagesFromFS(product.img)
+      deleteMediaFromFS(product.img)
+      deleteMediaFromFS(product.video)
       await Product.deleteOne(product);
       return res.status(OK).json({ message: deleteProduct });
     } catch (error) {

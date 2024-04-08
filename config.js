@@ -3,7 +3,10 @@ dotenv.config();
 const timeСonfirmationToken = { day: 0, hour: 1, minute: 0 }; // Задайте время жизни для токена подтверждения почты
 const timeJwtToken = { day: 1, hour: 0, minute: 0 }; // Задайте время жизни для токена авторизации
 const timeTemporalCart = { day: 2, hour: 0, minute: 0 }; // Задайте время жизни для корзины неавторизованного пользователя
-
+const maxSizeFiles = {
+  image: 5,//Задайте максимальный размер изображения в Мб
+  video: 50//Задайте максимальный размер видео в Мб
+}
 const config = {
   env: process.env.NODE_ENV || "production", // Окружение (production, development и т. д.)
   port: process.env.PORT || 3000, // Порт, на котором работает сервер
@@ -24,8 +27,18 @@ const config = {
   curentDate: new Date().getTime(), // Текущее время в миллисекундах
   lifetimeTemporaryCart: convertingTime(timeTemporalCart, "ms"), // Время жизни временной корзины для незарегистрированных пользователей (в минутах)
   maxImagesProduct: 10, //Максимальное колличество изображений для одного товара
-  allowedImageTypes: ["image/png", "image/jpeg", "image/webp"],
-  maxImageSize: 5242880,
+  maxVideosProduct: 2, //Максимальное колличество видео для одного товара
+  mimeTypesImages: { //Допустимые типы изображений
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+  },
+  mimeTypesVideos: { //Допустимые типы видео
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+  },
+  maxImageSize: maxSizeFiles.image * 1024 * 1024, //Максимальный размер изображения в байтах
+  maxVideoSize: maxSizeFiles.video * 1024 * 1024, //Максимальный размер видео в байтах
 };
 export default config;
 

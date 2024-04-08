@@ -14,8 +14,10 @@ import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const { NotFoundError, UnauthorizedError, BadRequestError, ConflictError } =
+
+const { NotFoundError, UnauthorizedError, BadRequestError } =
   ApiError;
+
 const {
   env,
   secretJwtKey,
@@ -27,6 +29,11 @@ const {
 } = config;
 const { hashingError, invalidCredentials, sendingEmailOk, errorSendingEmail } =
   errorMessages;
+
+  function getMediaDirectoryPath(pathToMedia) {
+    const basePath = path.resolve(__dirname, pathToMedia);
+    return basePath;
+  }
 
 async function findById(model, id, errorMessage) {
   try {
@@ -62,52 +69,42 @@ function checkProductQuantity(quantity, productQuantity) {
     };
   }
 }
-function normalizeImageArray(image) {
-  const imageArr = Array.isArray(image) ? image : [image];
-  return imageArr;
+function normalizeFileArray(file) {
+  const fileArr = Array.isArray(file) ? file : [file];
+  return fileArr;
 }
 
-function generateImageName(images) {
-  const imageNames = [];
-  const imageArr = normalizeImageArray(images);
-  imageArr.forEach((image) => {
-    let fileExtension = ".jpg";
-    switch (true) {
-      case image.mimetype === "image/jpeg":
-        fileExtension = ".jpg";
-        break;
-      case image.mimetype === "image/png":
-        fileExtension = ".png";
-        break;
-      case image.mimetype === "image/webp":
-        fileExtension = ".webp";
-        break;
-      default:
-        break;
+function generateFileName(files, mimeTypes) {
+  const filesArr = normalizeFileArray(files);
+  const fileNames = filesArr.map((file) => {
+    if (!file || !file.mimetype) {
+      throw BadRequestError("Файл не определен или отсутствует MIME тип");
     }
-    const imgName = uuidv4() + fileExtension;
-    imageNames.push(imgName);
+    const fileExtension = mimeTypes[file.mimetype];
+    const fileName = uuidv4() + fileExtension;
+    return fileName;
   });
-  return imageNames;
+  return fileNames;
 }
 
-function processImages(req) {
-  const staticDir = path.resolve(__dirname, "./static");
+function storeMediaLocally(reqFiles, mimeTypes) {
+  const staticDir = getMediaDirectoryPath("./static");
   if (!fs.existsSync(staticDir)) {
     fs.mkdirSync(staticDir, { recursive: true });
   }
-  const images = generateImageName(req.files.img);
-  for (const imageName of images) {
-    const filePath = path.join(staticDir, imageName);
-    fs.writeFileSync(filePath, imageName);
-  }
-  return images;
+  const files = generateFileName(reqFiles, mimeTypes);
+  const filesArr = normalizeFileArray(reqFiles);
+  filesArr.forEach((file, index) => {
+    const filePath = path.join(staticDir, files[index]);
+    file.mv(filePath);
+  });
+  return files;
 }
 
-function deleteImagesFromFS(imageNames) {
-  const staticDir = path.resolve(__dirname, "./static");
-  imageNames.forEach((imageName) => {
-    const filePath = path.join(staticDir, imageName);
+function deleteMediaFromFS(mediaNames) {
+  const staticDir = getMediaDirectoryPath("./static");
+  mediaNames.forEach((mediaName) => {
+    const filePath = path.join(staticDir, mediaName);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     } else {
@@ -232,8 +229,8 @@ export {
   getOrCreateCart,
   setJwtCookie,
   checkJwtToken,
-  generateImageName,
-  processImages,
-  normalizeImageArray,
-  deleteImagesFromFS
+  generateFileName,
+  storeMediaLocally,
+  normalizeFileArray,
+  deleteMediaFromFS
 };

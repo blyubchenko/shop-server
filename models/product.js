@@ -31,6 +31,10 @@ const productShema = new mongoose.Schema({
   img: [{
     type: String,
   }],
+  video: [{
+    type: String, 
+    default: "",
+  }],
   color: {
     type: String,
     default: "black",
