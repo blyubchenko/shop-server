@@ -2,6 +2,7 @@ import { Router } from "express";
 import productRouter from "./product.js";
 import cartRoutes from "./cart.js";
 import userRouter from "./user.js";
+import orderRouter from "./order.js";
 import userController from "../controllers/user.js";
 import { auth } from "../middleware/auth.js";
 import productController from "../controllers/product.js";
@@ -46,5 +47,6 @@ router.get("/product/:id", validateId, getProductById);
 router.use(auth);
 router.use("/user", userRouter);
 router.use("/product", productRouter);
+router.use("/order", orderRouter);
 
 export default router;

@@ -9,7 +9,7 @@ const {
   deleteAcount,
   deleteUser,
   updateUserData,
-  updateRoleUser,
+  updateRoleUser, 
 } = userController;
 const router = new Router();
 

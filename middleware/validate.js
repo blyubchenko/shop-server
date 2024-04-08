@@ -153,6 +153,17 @@ const validateUpdateQuantityProductInCart = celebrate({
     quantity: Joi.number().required(),
      }),
 });
+const validateUpdateOrder = celebrate({
+  body: Joi.object().keys({
+    status: Joi.string()
+      .valid(
+        "pending",
+        "completed",
+        "canceled"
+      )
+      .required(),
+  }),
+});
 
 export {
   validateId,
@@ -165,5 +176,6 @@ export {
   validatePasswordResetRequest,
   validateRestPasswordConfirmation,
   validateGetProducts,
-  validateUpdateQuantityProductInCart
+  validateUpdateQuantityProductInCart,
+  validateUpdateOrder
 };

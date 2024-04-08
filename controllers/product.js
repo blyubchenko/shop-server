@@ -106,6 +106,7 @@ class productController {
       next(error);
     }
   }
+  
 
   async patchProductImage(req, res, next) {
     await patchProductMedia(req, res, next, 'img');
