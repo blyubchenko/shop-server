@@ -101,7 +101,6 @@ const validatePatchUserInfo = celebrate({
 const validatePatchUserRole = celebrate({
   body: Joi.object().keys({
     role: Joi.string().valid("user", "admin", "moder").required(),
-    secretKey: Joi.string().required()
   }),
 });
 
@@ -159,7 +158,8 @@ const validateUpdateOrder = celebrate({
       .valid(
         "pending",
         "completed",
-        "canceled"
+        "cancelled",
+        "paid"
       )
       .required(),
   }),

@@ -1,14 +1,11 @@
-import mongoose from "mongoose";
 import User from "../models/user.js";
 import Token from "../models/token.js";
 import { statusCode } from "../errors/statusCode.js";
-import { ApiError } from "../errors/errorApi.js";
-import { errorMessages } from "../errors/messageError.js";
+import { messageResponce } from "../errors/messageResponce.js";
 import cartController from './cart.js';
 import {
   checkResult,
   comparisonsPassword,
-  findById,
   generateJwtToken,
   hashPassword,
   normalizeEmail,
@@ -19,22 +16,20 @@ import {
 } from "../utils.js";
 
 const {
-  duplicateEmail,
   invalidCredentials,
   invalidData,
   logoutSuccess,
   loginSuccess,
   deletedUser,
-  invalidUserId,
   entityNotFound,
   emailNotFound,
   resetPasswordInstructions,
-  unconfirmedMail
-} = errorMessages;
+  unconfirmedMail,
+  passwordChanged
+} = messageResponce;
 
 const {transferCartItems} = cartController;
 const { OK, CREATED } = statusCode;
-const { BadRequestError, ConflictError } = ApiError;
 
 class userController {
   async getUsers(req, res, next) {
@@ -44,7 +39,7 @@ class userController {
 
   async getUserById(req, res, next) {
     try {
-      const user = await findById(User, req.params.id, invalidUserId);
+      const user = await User.findById(req.params.id);
       checkResult(user, entityNotFound("Пользователь"));
       return res.status(OK).json(user);
     } catch (error) {
@@ -54,7 +49,7 @@ class userController {
 
   async getUserInfo(req, res, next) {
     try {
-      const user = await findById(User, req.user._id, invalidUserId);
+      const user = await User.findById(req.user._id);
       checkResult(user, entityNotFound("Пользователь"));
       return res.status(OK).json(user);
     } catch (error) {
@@ -93,18 +88,7 @@ class userController {
         },
       });
     } catch (error) {
-      if (error.code === 11000) {
-        next(ConflictError(duplicateEmail));
-      } else if (
-        error.errors &&
-        error.errors["email"] instanceof mongoose.Error.ValidatorError
-      ) {
-        next(BadRequestError(error.errors.email.message));
-      } else if (error instanceof mongoose.Error.ValidationError) {
-        next(BadRequestError(invalidData));
-      } else {
-        next(error);
-      }
+    next(error)
     }
   }
 
@@ -122,11 +106,7 @@ class userController {
       checkResult(user, entityNotFound("Пользователь"));
       return res.status(OK).json(user);
     } catch (error) {
-      if (error instanceof mongoose.Error.ValidationError) {
-        next(BadRequestError(invalidData));
-      } else {
-        next(error);
-      }
+     next(error)
     }
   }
 
@@ -146,30 +126,19 @@ class userController {
         setJwtCookie(res, token)
       return res.status(OK).json(user);
     } catch (error) {
-      if (error instanceof mongoose.Error.CastError) {
-        next(BadRequestError(invalidData));
-      }
-      if (error instanceof mongoose.Error.ValidationError) {
-        next(BadRequestError(invalidData));
-      } else {
-        next(error);
-      }
+      next(error)
     }
   }
 
   async deleteUser(req, res, next) {
     try {
       const { id } = req.params;
-      const user = await findById(User, id, invalidUserId);
+      const user = await User.findById(id);
       checkResult(user, entityNotFound("Пользователь"));
       await User.deleteOne(user);
       return res.status(OK).json({ message: deletedUser });
     } catch (error) {
-      if (error instanceof mongoose.Error.CastError) {
-        next(BadRequestError(invalidData));
-      } else {
-        next(error);
-      }
+     next(error)
     }
   }
 
@@ -181,11 +150,7 @@ class userController {
       deleteJwt(res);
       return res.status(OK).send({ message: deletedUser });
     } catch (error) {
-      if (error instanceof mongoose.Error.CastError) {
-        next(BadRequestError(invalidData));
-      } else {
-        next(error);
-      }
+     next(error)
     }
   }
 
@@ -216,6 +181,7 @@ class userController {
   async passwordResetRequest(req, res, next) {
     try {
       const { email } = req.body;
+      deleteJwt(res);
       const normalizedEmail = normalizeEmail(email);
       const user = await User.findOne({ email: normalizedEmail });
       checkResult(user, emailNotFound);
@@ -228,14 +194,7 @@ class userController {
       await sendEmail(normalizedEmail, token, true);
       return res.status(OK).json({ message: resetPasswordInstructions });
     } catch (error) {
-      if (
-        error.errors &&
-        error.errors["email"] instanceof mongoose.Error.ValidatorError
-      ) {
-        next(BadRequestError(error.errors.email.message));
-      } else {
-        next(error);
-      }
+      next(error)
     }
   }
   async restPasswordConfirmation(req, res, next) {
@@ -251,7 +210,7 @@ class userController {
       userToken.token = null, 
       userToken.expiresAt = new Date(0)
       await userToken.save()
-      return res.status(OK).json({message: "Пароль успешно изменён"})
+      return res.status(OK).json({message: passwordChanged})
     } catch (error) {
       next(error);
     }

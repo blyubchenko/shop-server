@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import validator from "validator";
 import config from "../config.js";
-import { errorMessages } from "../errors/messageError.js";
-const { invalidEmailFormat } = errorMessages;
+import { messageResponce } from "../errors/messageResponce.js";
+const { invalidEmailFormat } = messageResponce;
 
 const { nameUserLength, passwordLength, saltRounds, tokenLifetime } = config;
 

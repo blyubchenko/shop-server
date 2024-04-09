@@ -1,10 +1,10 @@
 import { ApiError } from "../errors/errorApi.js";
 import config from "../config.js";
-import { errorMessages } from "../errors/messageError.js";
+import { messageResponce } from '../errors/messageResponce.js'
 import { checkJwtToken } from "../utils.js";
 
 const { env, secretJwtKey } = config;
-
+const {notAuthorized} = messageResponce;
 export const auth = async (req, res, next) => {
   try {
     const payload = checkJwtToken(req, env, secretJwtKey);
@@ -12,9 +12,9 @@ export const auth = async (req, res, next) => {
       req.user = payload
       next()
     } else {
-      next(ApiError.UnauthorizedError(errorMessages.notAuthorized));
+      next(ApiError.UnauthorizedError(notAuthorized));
     }
   } catch (err) {
-    return next(ApiError.UnauthorizedError(errorMessages.notAuthorized));
+    return next(ApiError.UnauthorizedError(notAuthorized));
   }
 };

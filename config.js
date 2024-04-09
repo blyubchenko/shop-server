@@ -22,7 +22,7 @@ const config = {
   emailAdress: process.env.EMAIL_ADRESS || "youAdress@mail.ru", // Адрес электронной почты для отправки уведомлений
   emailService: process.env.EMAIL_SERVICE || "mail", // Сервис электронной почты для отправки уведомлений
   emailPassword: process.env.EMAIL_PASSWORD || "superPassword", // Пароль для доступа к сервису электронной почты
-  tokenLifetime: convertingTime(timeСonfirmationToken, "ms"), // Время жизни токена подтверждения почты (в миллисекундах) - для db
+  tokenLifetime: new Date().getTime() + convertingTime(timeСonfirmationToken, "ms"), // Время жизни токена подтверждения почты (в миллисекундах) - для db
   tokenLifetimeInMinute: convertingTime(timeСonfirmationToken, "m"), // Время жизни токена подтверждения почты (в минутах) - для email пользователю
   curentDate: new Date().getTime(), // Текущее время в миллисекундах
   lifetimeTemporaryCart: convertingTime(timeTemporalCart, "ms"), // Время жизни временной корзины для незарегистрированных пользователей (в минутах)
@@ -43,36 +43,23 @@ const config = {
 export default config;
 
 function convertingTime(time, outputFormat = "ms") {
-  const todaysDate = new Date().getTime();
   let outputTime;
   switch (outputFormat) {
     case "ms":
-      outputTime =
-        todaysDate +
-        time.day * 24 * 60 * 60 * 1000 +
-        time.hour * 60 * 60 * 1000 +
-        time.minute * 60 * 1000;
+      outputTime = time.day * 24 * 60 * 60 * 1000 + time.hour * 60 * 60 * 1000 + time.minute * 60 * 1000;
       break;
-
     case "s":
-      outputTime =
-        todaysDate +
-        time.day * 24 * 60 * 60 +
-        time.hour * 60 * 60 +
-        time.minute * 60;
+      outputTime = time.day * 24 * 60 * 60 + time.hour * 60 * 60 + time.minute * 60;
       break;
     case "m":
-      outputTime =
-        todaysDate + time.day * 24 * 60 + time.hour * 60 + time.minute;
+      outputTime = time.day * 24 * 60 + time.hour * 60 + time.minute;
       break;
     case "h":
-      outputTime = todaysDate + time.day * 24 + time.hour + time.minute / 60;
+      outputTime = time.day * 24 + time.hour + time.minute / 60;
       break;
     case "d":
-      outputTime =
-        todaysDate + time.day + time.hour / 24 + time.minute / 60 / 24;
+      outputTime = time.day + time.hour / 24 + time.minute / (60 * 24);
       break;
-
     default:
       outputTime = "Задан несуществующий флаг";
       break;

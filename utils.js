@@ -1,5 +1,4 @@
-import { errorMessages } from "./errors/messageError.js";
-import mongoose from "mongoose";
+import { messageResponce } from "./errors/messageResponce.js";
 import { ApiError } from "./errors/errorApi.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -27,26 +26,13 @@ const {
   emailPassword,
   tokenLifetime,
 } = config;
-const { hashingError, invalidCredentials, sendingEmailOk, errorSendingEmail } =
-  errorMessages;
+const { hashingError, invalidCredentials, sendingEmailOk, errorSendingEmail, invalidFile, fileNotExist, productBalance } =
+messageResponce;
 
   function getMediaDirectoryPath(pathToMedia) {
     const basePath = path.resolve(__dirname, pathToMedia);
     return basePath;
   }
-
-async function findById(model, id, errorMessage) {
-  try {
-    const result = await model.findById(id);
-    return result;
-  } catch (error) {
-    if (error instanceof mongoose.Error.CastError) {
-      throw BadRequestError(errorMessage);
-    } else {
-      throw error;
-    }
-  }
-}
 
 function checkResult(result, errorMessage) {
   if (result === null || result === false || result === 0) {
@@ -55,30 +41,30 @@ function checkResult(result, errorMessage) {
 }
 
 function checkProductQuantity(quantity, productQuantity) {
-  const productBalance = Math.max(productQuantity - quantity, 0);
+  const balance = Math.max(productQuantity - quantity, 0);
   if (productQuantity >= quantity) {
     return {
       amount: quantity,
-      message: `Доступный остаток товара: ${productBalance}`,
+      message: productBalance(balance),
     };
   }
   if (productQuantity < quantity) {
     return {
       amount: productQuantity,
-      message: `Доступный остаток товара: ${productBalance}`,
+      message: productBalance(balance),
     };
   }
 }
+
 function normalizeFileArray(file) {
   const fileArr = Array.isArray(file) ? file : [file];
   return fileArr;
 }
 
 function generateFileName(files, mimeTypes) {
-  const filesArr = normalizeFileArray(files);
-  const fileNames = filesArr.map((file) => {
+  const fileNames = files.map((file) => {
     if (!file || !file.mimetype) {
-      throw BadRequestError("Файл не определен или отсутствует MIME тип");
+      throw BadRequestError(invalidFile);
     }
     const fileExtension = mimeTypes[file.mimetype];
     const fileName = uuidv4() + fileExtension;
@@ -92,8 +78,8 @@ function storeMediaLocally(reqFiles, mimeTypes) {
   if (!fs.existsSync(staticDir)) {
     fs.mkdirSync(staticDir, { recursive: true });
   }
-  const files = generateFileName(reqFiles, mimeTypes);
   const filesArr = normalizeFileArray(reqFiles);
+  const files = generateFileName(filesArr, mimeTypes);
   filesArr.forEach((file, index) => {
     const filePath = path.join(staticDir, files[index]);
     file.mv(filePath);
@@ -108,7 +94,7 @@ function deleteMediaFromFS(mediaNames) {
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     } else {
-      throw NotFoundError("Файл не существует");
+      throw NotFoundError(fileNotExist);
     }
   });
 }
@@ -219,7 +205,6 @@ export {
   normalizeEmail,
   comparisonsPassword,
   hashPassword,
-  findById,
   generateJwtToken,
   checkResult,
   deleteJwt,
