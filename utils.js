@@ -93,8 +93,6 @@ function deleteMediaFromFS(mediaNames) {
     const filePath = path.join(staticDir, mediaName);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-    } else {
-      throw NotFoundError(fileNotExist);
     }
   });
 }
@@ -217,5 +215,6 @@ export {
   generateFileName,
   storeMediaLocally,
   normalizeFileArray,
-  deleteMediaFromFS
+  deleteMediaFromFS,
+  getMediaDirectoryPath
 };

@@ -28,6 +28,7 @@ const config = {
   lifetimeTemporaryCart: convertingTime(timeTemporalCart, "ms"), // Время жизни временной корзины для незарегистрированных пользователей (в минутах)
   maxImagesProduct: 10, //Максимальное колличество изображений для одного товара
   maxVideosProduct: 2, //Максимальное колличество видео для одного товара
+  maxImagesAvatar: 1, //Максимальное колличество изображений для аватара
   mimeTypesImages: { //Допустимые типы изображений
     "image/jpeg": ".jpg",
     "image/png": ".png",

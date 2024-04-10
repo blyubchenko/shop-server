@@ -177,5 +177,5 @@ export {
   validateRestPasswordConfirmation,
   validateGetProducts,
   validateUpdateQuantityProductInCart,
-  validateUpdateOrder
+  validateUpdateOrder,
 };

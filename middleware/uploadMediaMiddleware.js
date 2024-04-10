@@ -9,6 +9,7 @@ const {
   mimeTypesImages,
   mimeTypesVideos,
   maxVideosProduct,
+  maxImagesAvatar
 } = config;
 const { BadRequestError } = ApiError;
 
@@ -35,7 +36,7 @@ const validateFiles = (files, maxCount, maxSize, mimeTypes, fileType) => {
 };
 
 const uploadMediaMiddleware = (req, res, next) => {
-  if (!req.files?.img && !req.files?.video) {
+  if (!req.files?.img && !req.files?.video && !req.files?.avatar) {
     return next(
       BadRequestError("Не загружено ни одного изображения или видео")
     );
@@ -48,6 +49,17 @@ const uploadMediaMiddleware = (req, res, next) => {
     errorMessage = validateFiles(
       images,
       maxImagesProduct,
+      maxImageSize,
+      mimeTypesImages,
+      "изображения"
+    );
+  }
+
+  if (req.files?.avatar) {
+    const images = normalizeFileArray(req.files.avatar);
+    errorMessage = validateFiles(
+      images,
+      maxImagesAvatar,
       maxImageSize,
       mimeTypesImages,
       "изображения"

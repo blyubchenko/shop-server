@@ -36,6 +36,9 @@ const userSchema = new mongoose.Schema({
     enum: ["user", "admin", "moder"],
     default: "user",
   },
+  avatar: [{
+    type: String,
+  }],
   confirmed: {
     type: Boolean,
     default: false,

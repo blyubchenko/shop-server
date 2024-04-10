@@ -3,6 +3,8 @@ import Token from "../models/token.js";
 import { statusCode } from "../errors/statusCode.js";
 import { messageResponce } from "../errors/messageResponce.js";
 import cartController from './cart.js';
+import config from '../config.js';
+
 import {
   checkResult,
   comparisonsPassword,
@@ -12,7 +14,9 @@ import {
   deleteJwt,
   sendEmail,
   generateConfirmationToken,
-  setJwtCookie
+  setJwtCookie,
+  storeMediaLocally,
+  deleteMediaFromFS
 } from "../utils.js";
 
 const {
@@ -28,6 +32,7 @@ const {
   passwordChanged
 } = messageResponce;
 
+const {mimeTypesImages} = config;
 const {transferCartItems} = cartController;
 const { OK, CREATED } = statusCode;
 
@@ -124,6 +129,21 @@ class userController {
       checkResult(user, entityNotFound("Пользователь"));
         const token = generateJwtToken(user._id, role)
         setJwtCookie(res, token)
+      return res.status(OK).json(user);
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async updateAvatar(req, res, next) {
+    try {
+      const {avatar} = req.files;
+      const user = await User.findById(req.user._id);
+      checkResult(user, entityNotFound("Пользователь"));
+      const pervAvatar = user.avatar
+      deleteMediaFromFS(pervAvatar)
+      user.avatar = storeMediaLocally(avatar, mimeTypesImages)
+      await user.save()
       return res.status(OK).json(user);
     } catch (error) {
       next(error)
