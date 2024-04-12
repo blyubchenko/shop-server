@@ -3,84 +3,55 @@ import { ApiError } from "../errors/errorApi.js";
 import { normalizeFileArray } from "../utils.js";
 
 const {
-  maxImagesProduct,
-  maxImageSize,
-  maxVideoSize,
-  mimeTypesImages,
-  mimeTypesVideos,
-  maxVideosProduct,
-  maxImagesAvatar
+  mediaConfigImageProduct,
+  mediaConfigVideoProduct,
+  mediaConfigImageAvatar,
 } = config;
 const { BadRequestError } = ApiError;
 
-const validateFiles = (files, maxCount, maxSize, mimeTypes, fileType) => {
-  if (files.length > maxCount) {
-    return `Количество загружаемых ${fileType} не должно превышать ${maxCount}`;
+const validateFiles = (files, config, fileType) => {
+  const normalizedFiles = normalizeFileArray(files);
+  if (normalizedFiles.length > config.maxSlots) {
+    return `Количество загружаемых ${fileType} не должно превышать ${config.maxSlots}`;
   }
-
-  const invalidFile = files.find(
-    (file) => file.size > maxSize || !mimeTypes.hasOwnProperty(file.mimetype)
+  const invalidFile = normalizedFiles.find(
+    (file) =>
+      file.size > config.maxSize ||
+      !config.mimeTypes.hasOwnProperty(file.mimetype)
   );
   if (invalidFile) {
-    if (invalidFile.size > maxSize) {
+    if (invalidFile.size > config.maxSize) {
       return `Размер файла ${fileType} превышает максимально допустимый: ${
-        maxSize / 1024 / 1024
+        config.maxSize / 1024 / 1024
       } Мб`;
     }
-    if (!mimeTypes.hasOwnProperty(invalidFile.mimetype)) {
+    if (!config.mimeTypes.hasOwnProperty(invalidFile.mimetype)) {
       return `Недопустимый тип ${fileType} файла`;
     }
   }
-
   return null;
 };
 
 const uploadMediaMiddleware = (req, res, next) => {
-  if (!req.files?.img && !req.files?.video && !req.files?.avatar) {
+  const { img, video, avatar } = req.files || {};
+  if (!img && !video && !avatar) {
     return next(
       BadRequestError("Не загружено ни одного изображения или видео")
     );
   }
-
   let errorMessage = null;
-
-  if (req.files?.img) {
-    const images = normalizeFileArray(req.files.img);
-    errorMessage = validateFiles(
-      images,
-      maxImagesProduct,
-      maxImageSize,
-      mimeTypesImages,
-      "изображения"
-    );
+  if (img) {
+    errorMessage = validateFiles(img, mediaConfigImageProduct, "изображения");
   }
-
-  if (req.files?.avatar) {
-    const images = normalizeFileArray(req.files.avatar);
-    errorMessage = validateFiles(
-      images,
-      maxImagesAvatar,
-      maxImageSize,
-      mimeTypesImages,
-      "изображения"
-    );
+  if (avatar) {
+    errorMessage = validateFiles(avatar, mediaConfigImageAvatar, "изображения");
   }
-
-  if (!errorMessage && req.files?.video) {
-    const videos = normalizeFileArray(req.files.video);
-    errorMessage = validateFiles(
-      videos,
-      maxVideosProduct,
-      maxVideoSize,
-      mimeTypesVideos,
-      "видео"
-    );
+  if (video) {
+    errorMessage = validateFiles(video, mediaConfigVideoProduct, "видео");
   }
-
   if (errorMessage) {
     return next(BadRequestError(errorMessage));
   }
-
   next();
 };
 

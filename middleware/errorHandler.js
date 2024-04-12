@@ -2,13 +2,18 @@ import {statusCode} from "../errors/statusCode.js"
 import { ApiError } from "../errors/errorApi.js";
 import mongoose from "mongoose";
 import {messageResponce} from "../errors/messageResponce.js"
-const {invalidData, internalServerError, invalidDataValidation, duplicateEmail} = messageResponce;
+const {invalidData, internalServerError, invalidDataValidation, duplicateEmail, duplicateProduct} = messageResponce;
 const {SERVER_ERROR, BAD_REQUEST, CONFLICT} = statusCode;
 
 
 export const errorHandler = (err, req, res, next) => {
+  console.log(err);
     if (err.code === 11000) {
+      if (err.keyPattern.email === 1) {
         res.status(CONFLICT).json({ message: duplicateEmail });
+      } if (err.keyPattern.name === 1) {
+        res.status(CONFLICT).json({ message: duplicateProduct });
+      }
       } else if (
         err.errors &&
         err.errors["email"] instanceof mongoose.Error.ValidatorError

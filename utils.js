@@ -7,15 +7,16 @@ import { v4 as uuidv4 } from "uuid";
 import nodemailer from "nodemailer";
 import Cart from "./models/cart.js";
 import TemporaryCart from "./models/temporaryCart.js";
-import path from "path";
+import path, { format } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import sharp from "sharp";
+import { url } from "inspector";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const { NotFoundError, UnauthorizedError, BadRequestError } =
-  ApiError;
+const { NotFoundError, UnauthorizedError, BadRequestError } = ApiError;
 
 const {
   env,
@@ -26,13 +27,20 @@ const {
   emailPassword,
   tokenLifetime,
 } = config;
-const { hashingError, invalidCredentials, sendingEmailOk, errorSendingEmail, invalidFile, fileNotExist, productBalance } =
-messageResponce;
+const {
+  hashingError,
+  invalidCredentials,
+  sendingEmailOk,
+  errorSendingEmail,
+  invalidFile,
+  fileNotExist,
+  productBalance,
+} = messageResponce;
 
-  function getMediaDirectoryPath(pathToMedia) {
-    const basePath = path.resolve(__dirname, pathToMedia);
-    return basePath;
-  }
+function getMediaDirectoryPath(pathToMedia) {
+  const basePath = path.resolve(__dirname, pathToMedia);
+  return basePath;
+}
 
 function checkResult(result, errorMessage) {
   if (result === null || result === false || result === 0) {
@@ -66,20 +74,68 @@ function generateFileName(files, mimeTypes) {
     if (!file || !file.mimetype) {
       throw BadRequestError(invalidFile);
     }
-    const fileExtension = mimeTypes[file.mimetype];
+    let fileExtension = "";
+    if (!file.mimetype.startsWith("image")) {
+      fileExtension = mimeTypes[file.mimetype];
+    }
     const fileName = uuidv4() + fileExtension;
     return fileName;
   });
   return fileNames;
 }
 
-function storeMediaLocally(reqFiles, mimeTypes) {
+async function converterImages(images, filePath, fileNames, convertOptions) {
+  const { quality, size, format, height, width } = convertOptions;
+  const promises = [];
+  for (let i = 0; i < images.length; i++) {
+    const pictureObj = {
+      url: fileNames[i],
+      formats: {}
+    };
+    for (let index in quality) {
+      const fileName = `${fileNames[i]}-${size[index]}.${format}`;
+      const filePathWebp = path.join(filePath, fileName);
+
+      await sharp(images[i].data)
+        .clone()
+        [format]({ lossless: false, quality: quality[index], effort: 3 })
+        .resize({
+          width: width[index],
+          height: height[index],
+        })
+        .toFile(filePathWebp);
+
+      const formatObj = {
+        url: fileName,
+        format: format,
+        height: height[index],
+        width: width[index],
+      };
+      pictureObj.formats[size[index]] = formatObj;
+    }
+    promises.push(pictureObj);
+  }
+  return Promise.all(promises);
+}
+
+async function storeMediaLocally(reqFiles, mimeTypes, convert = false) {
   const staticDir = getMediaDirectoryPath("./static");
   if (!fs.existsSync(staticDir)) {
     fs.mkdirSync(staticDir, { recursive: true });
   }
   const filesArr = normalizeFileArray(reqFiles);
   const files = generateFileName(filesArr, mimeTypes);
+
+  if (convert) {
+    const arrImages = await converterImages(
+      filesArr,
+      staticDir,
+      files,
+      convert
+    );
+    return arrImages;
+  }
+
   filesArr.forEach((file, index) => {
     const filePath = path.join(staticDir, files[index]);
     file.mv(filePath);
@@ -88,11 +144,16 @@ function storeMediaLocally(reqFiles, mimeTypes) {
 }
 
 function deleteMediaFromFS(mediaNames) {
+  console.log(mediaNames);
   const staticDir = getMediaDirectoryPath("./static");
   mediaNames.forEach((mediaName) => {
-    const filePath = path.join(staticDir, mediaName);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    for (const format in mediaName.formats) {
+      if (Object.hasOwnProperty.call(mediaName.formats, format)) {
+        const filePath = path.join(staticDir, mediaName.formats[format].url);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
     }
   });
 }
@@ -216,5 +277,5 @@ export {
   storeMediaLocally,
   normalizeFileArray,
   deleteMediaFromFS,
-  getMediaDirectoryPath
+  getMediaDirectoryPath,
 };

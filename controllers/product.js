@@ -10,48 +10,30 @@ import {
 } from "../utils.js";
 import config from "../config.js";
 
-const { maxImagesProduct, maxVideosProduct, mimeTypesImages, mimeTypesVideos } =
-  config;
-const {
-  deleteProduct,
-  imagesDeleted,
-  videosDeleted,
-  entityNotFound,
-} = messageResponce;
+const { mediaConfigImageProduct, mediaConfigVideoProduct } = config;
+const { deleteProduct, imagesDeleted, videosDeleted, entityNotFound } =
+  messageResponce;
 const { OK, CREATED } = statusCode;
 const { ConflictError } = ApiError;
 
-async function patchProductMedia(req, res, next, mediaType) {
+async function patchProductMedia(req, res, next, config) {
   try {
     const product = await Product.findById(req.params.id);
     checkResult(product, entityNotFound("Товар"));
 
-    const mediaConfig = {
-      img: {
-        maxSlots: maxImagesProduct,
-        mimeTypes: mimeTypesImages,
-        fieldName: "img",
-      },
-      video: {
-        maxSlots: maxVideosProduct,
-        mimeTypes: mimeTypesVideos,
-        fieldName: "video",
-      },
-    };
-
-    const config = mediaConfig[mediaType];
     const remainingSlots = config.maxSlots - product[config.fieldName].length;
-    const mediaArr = normalizeFileArray(req.files[mediaType]);
+    const mediaArr = normalizeFileArray(req.files[config.fieldName]);
     if (remainingSlots < mediaArr.length) {
       return next(
         ConflictError(
-          `${mediaType} доступно для загрузки: ${remainingSlots} из ${config.maxSlots}`
+          `${config.fieldName} доступно для загрузки: ${remainingSlots} из ${config.maxSlots}`
         )
       );
     } else {
       const mediaFiles = storeMediaLocally(
-        req.files[mediaType],
-        config.mimeTypes
+        req.files[config.fieldName],
+        config.mimeTypes,
+        config.convertOptions
       );
       product[config.fieldName] = [...product[config.fieldName], ...mediaFiles];
       await product.save();
@@ -89,13 +71,23 @@ class productController {
 
   async createProduct(req, res, next) {
     try {
-      const images = storeMediaLocally(req.files.img, mimeTypesImages);
-      const videos = storeMediaLocally(req.files.video, mimeTypesVideos);
       const product = await Product.create({
-        img: images,
-        video: videos,
+        img: [],
+        video: [],
         ...req.body,
       });
+      const images = await storeMediaLocally(
+        req.files.img,
+        mediaConfigImageProduct.mimeTypes,
+        mediaConfigImageProduct.convertOptions
+      );
+      const videos = await storeMediaLocally(
+        req.files.video,
+        mediaConfigVideoProduct.mimeTypes
+      );
+      product.img = images;
+      product.video = videos;
+      await product.save();
       return res.status(CREATED).json(product);
     } catch (error) {
       next(error);
@@ -117,11 +109,11 @@ class productController {
   }
 
   async patchProductImage(req, res, next) {
-    await patchProductMedia(req, res, next, "img");
+    await patchProductMedia(req, res, next, mediaConfigImageProduct);
   }
 
   async patchProductVideo(req, res, next) {
-    await patchProductMedia(req, res, next, "video");
+    await patchProductMedia(req, res, next, mediaConfigVideoProduct);
   }
 
   async deleteProductImage(req, res, next) {

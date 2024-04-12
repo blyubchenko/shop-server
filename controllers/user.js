@@ -2,8 +2,8 @@ import User from "../models/user.js";
 import Token from "../models/token.js";
 import { statusCode } from "../errors/statusCode.js";
 import { messageResponce } from "../errors/messageResponce.js";
-import cartController from './cart.js';
-import config from '../config.js';
+import cartController from "./cart.js";
+import config from "../config.js";
 
 import {
   checkResult,
@@ -16,7 +16,7 @@ import {
   generateConfirmationToken,
   setJwtCookie,
   storeMediaLocally,
-  deleteMediaFromFS
+  deleteMediaFromFS,
 } from "../utils.js";
 
 const {
@@ -29,11 +29,11 @@ const {
   emailNotFound,
   resetPasswordInstructions,
   unconfirmedMail,
-  passwordChanged
+  passwordChanged,
 } = messageResponce;
 
-const {mimeTypesImages} = config;
-const {transferCartItems} = cartController;
+const { mediaConfigImageAvatar } = config;
+const { transferCartItems } = cartController;
 const { OK, CREATED } = statusCode;
 
 class userController {
@@ -89,11 +89,11 @@ class userController {
         user: {
           name,
           email: normalizedEmail,
-          role
+          role,
         },
       });
     } catch (error) {
-    next(error)
+      next(error);
     }
   }
 
@@ -111,7 +111,7 @@ class userController {
       checkResult(user, entityNotFound("Пользователь"));
       return res.status(OK).json(user);
     } catch (error) {
-     next(error)
+      next(error);
     }
   }
 
@@ -127,26 +127,32 @@ class userController {
         }
       );
       checkResult(user, entityNotFound("Пользователь"));
-        const token = generateJwtToken(user._id, role)
-        setJwtCookie(res, token)
+      const token = generateJwtToken(user._id, role);
+      setJwtCookie(res, token);
       return res.status(OK).json(user);
     } catch (error) {
-      next(error)
+      next(error);
     }
   }
 
   async updateAvatar(req, res, next) {
     try {
-      const {avatar} = req.files;
+      const { avatar } = req.files;
       const user = await User.findById(req.user._id);
       checkResult(user, entityNotFound("Пользователь"));
-      const pervAvatar = user.avatar
-      deleteMediaFromFS(pervAvatar)
-      user.avatar = storeMediaLocally(avatar, mimeTypesImages)
-      await user.save()
+      const pervAvatar = user.avatar;
+
+      deleteMediaFromFS(pervAvatar);
+      user.avatar = await storeMediaLocally(
+        avatar,
+        mediaConfigImageAvatar.mimeTypes,
+        mediaConfigImageAvatar.convertOptions
+      );
+      await user.save();
       return res.status(OK).json(user);
     } catch (error) {
-      next(error)
+      console.log(error);
+      next(error);
     }
   }
 
@@ -158,7 +164,7 @@ class userController {
       await User.deleteOne(user);
       return res.status(OK).json({ message: deletedUser });
     } catch (error) {
-     next(error)
+      next(error);
     }
   }
 
@@ -170,7 +176,7 @@ class userController {
       deleteJwt(res);
       return res.status(OK).send({ message: deletedUser });
     } catch (error) {
-     next(error)
+      next(error);
     }
   }
 
@@ -182,11 +188,11 @@ class userController {
         "+password"
       );
       checkResult(user, invalidCredentials);
-      checkResult(user.confirmed, unconfirmedMail)
+      checkResult(user.confirmed, unconfirmedMail);
       await comparisonsPassword(password, user.password);
       const token = generateJwtToken(user._id, user.role);
-      setJwtCookie(res, token)
-      transferCartItems(user._id)
+      setJwtCookie(res, token);
+      transferCartItems(user._id);
       return res.status(OK).send({ message: loginSuccess });
     } catch (error) {
       next(error);
@@ -205,32 +211,31 @@ class userController {
       const normalizedEmail = normalizeEmail(email);
       const user = await User.findOne({ email: normalizedEmail });
       checkResult(user, emailNotFound);
-      const {token, expiresAt} = generateConfirmationToken();
+      const { token, expiresAt } = generateConfirmationToken();
       await Token.create({
         token,
         expiresAt,
-        owner: user._id
-      })
+        owner: user._id,
+      });
       await sendEmail(normalizedEmail, token, true);
       return res.status(OK).json({ message: resetPasswordInstructions });
     } catch (error) {
-      next(error)
+      next(error);
     }
   }
   async restPasswordConfirmation(req, res, next) {
     try {
-      const {password, token} = req.body;
-      const userToken = await Token.findOne({token});
+      const { password, token } = req.body;
+      const userToken = await Token.findOne({ token });
       checkResult(userToken, invalidData);
       const user = await User.findById(userToken.owner);
       checkResult(user, invalidData);
       const cryptPassword = await hashPassword(password);
-      user.password = cryptPassword
-      await user.save()
-      userToken.token = null, 
-      userToken.expiresAt = new Date(0)
-      await userToken.save()
-      return res.status(OK).json({message: passwordChanged})
+      user.password = cryptPassword;
+      await user.save();
+      (userToken.token = null), (userToken.expiresAt = new Date(0));
+      await userToken.save();
+      return res.status(OK).json({ message: passwordChanged });
     } catch (error) {
       next(error);
     }

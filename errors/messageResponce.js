@@ -4,6 +4,7 @@ export const messageResponce = {
     entityNotFound: (entity) => `${entity} с указанным id не найден`,
     productBalance: (balance) => `Доступный остаток товара: ${balance}`,
     duplicateEmail: "Пользователь с указанным email уже зарегистрирован",
+    duplicateProduct: "Не уникальное имя товара",
     emailNotFound: "Пользователь с указанным email не найден",
     invalidEmailFormat: "Некорректный формат email",
     invalidData: "Переданы некорректные данные",

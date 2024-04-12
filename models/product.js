@@ -28,9 +28,31 @@ const productShema = new mongoose.Schema({
     type: String,
     default: "leather",
   },
-  img: [{
-    type: String,
-  }],
+  img: [
+    {
+      url: { type: String, required: true },
+      formats: {
+        large: {
+          url: { type: String },
+          format: { type: String },
+          width: { type: Number },
+          height: { type: Number },
+        },
+        medium: {
+          url: { type: String },
+          format: { type: String },
+          width: { type: Number },
+          height: { type: Number },
+        },
+        small: {
+          url: { type: String },
+          format: { type: String },
+          width: { type: Number },
+          height: { type: Number },
+        },
+      },
+    },
+  ],
   video: [{
     type: String, 
     default: "",
