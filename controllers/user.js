@@ -16,7 +16,8 @@ import {
   generateConfirmationToken,
   setJwtCookie,
   storeMediaLocally,
-  deleteMediaFromFS,
+  deleteImageFromFS,
+  normalizeFileArray,
 } from "../utils.js";
 
 const {
@@ -140,9 +141,7 @@ class userController {
       const { avatar } = req.files;
       const user = await User.findById(req.user._id);
       checkResult(user, entityNotFound("Пользователь"));
-      const pervAvatar = user.avatar;
-
-      deleteMediaFromFS(pervAvatar);
+      deleteImageFromFS(normalizeFileArray(user.avatar));
       user.avatar = await storeMediaLocally(
         avatar,
         mediaConfigImageAvatar.mimeTypes,
@@ -151,7 +150,6 @@ class userController {
       await user.save();
       return res.status(OK).json(user);
     } catch (error) {
-      console.log(error);
       next(error);
     }
   }

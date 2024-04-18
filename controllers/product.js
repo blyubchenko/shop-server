@@ -6,7 +6,9 @@ import {
   checkResult,
   storeMediaLocally,
   normalizeFileArray,
-  deleteMediaFromFS,
+  deleteImageFromFS,
+  deleteVideoFromFS,
+  splitImagesByIncludedStatus,
 } from "../utils.js";
 import config from "../config.js";
 
@@ -30,7 +32,7 @@ async function patchProductMedia(req, res, next, config) {
         )
       );
     } else {
-      const mediaFiles = storeMediaLocally(
+      const mediaFiles = await storeMediaLocally(
         req.files[config.fieldName],
         config.mimeTypes,
         config.convertOptions
@@ -122,12 +124,13 @@ class productController {
       const { arrayImageNames } = req.body;
       const product = await Product.findById(id);
       checkResult(product, entityNotFound("Товар"));
-      const images = product.img.filter(
-        (image) => !arrayImageNames.includes(image)
+      const { includedImages, excludedImages } = splitImagesByIncludedStatus(
+        product.img,
+        arrayImageNames
       );
-      product.img = images;
+      product.img = excludedImages;
       await product.save();
-      deleteMediaFromFS(arrayImageNames);
+      deleteImageFromFS(includedImages);
       return res.status(OK).json({ message: imagesDeleted });
     } catch (error) {
       next(error);
@@ -140,12 +143,11 @@ class productController {
       const { arrayVideoNames } = req.body;
       const product = await Product.findById(id);
       checkResult(product, entityNotFound("Товар"));
-      const videos = product.video.filter(
-        (video) => !arrayVideoNames.includes(video)
-      );
+      const videoArr = normalizeFileArray(arrayVideoNames);
+      const videos = product.video.filter((video) => !videoArr.includes(video));
       product.video = videos;
       await product.save();
-      deleteMediaFromFS(arrayVideoNames);
+      deleteVideoFromFS(videoArr);
       return res.status(OK).json({ message: videosDeleted });
     } catch (error) {
       next(error);
@@ -157,8 +159,8 @@ class productController {
       const { id } = req.params;
       const product = await Product.findById(id);
       checkResult(product, entityNotFound("Товар"));
-      deleteMediaFromFS(product.img);
-      deleteMediaFromFS(product.video);
+      deleteImageFromFS(product.img);
+      deleteVideoFromFS(product.video);
       await Product.deleteOne(product);
       return res.status(OK).json({ message: deleteProduct });
     } catch (error) {

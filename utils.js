@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 import nodemailer from "nodemailer";
 import Cart from "./models/cart.js";
 import TemporaryCart from "./models/temporaryCart.js";
-import path, { format } from "path";
+import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import sharp from "sharp";
@@ -33,7 +33,6 @@ const {
   sendingEmailOk,
   errorSendingEmail,
   invalidFile,
-  fileNotExist,
   productBalance,
 } = messageResponce;
 
@@ -90,7 +89,7 @@ async function converterImages(images, filePath, fileNames, convertOptions) {
   for (let i = 0; i < images.length; i++) {
     const pictureObj = {
       url: fileNames[i],
-      formats: {}
+      formats: {},
     };
     for (let index in quality) {
       const fileName = `${fileNames[i]}-${size[index]}.${format}`;
@@ -143,21 +142,43 @@ async function storeMediaLocally(reqFiles, mimeTypes, convert = false) {
   return files;
 }
 
-function deleteMediaFromFS(mediaNames) {
-  console.log(mediaNames);
-  const staticDir = getMediaDirectoryPath("./static");
-  mediaNames.forEach((mediaName) => {
-    for (const format in mediaName.formats) {
-      if (Object.hasOwnProperty.call(mediaName.formats, format)) {
-        const filePath = path.join(staticDir, mediaName.formats[format].url);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
+function splitImagesByIncludedStatus (entity, images) {
+  const imageArr = normalizeFileArray(images)
+  const { includedImages, excludedImages } = entity.reduce(
+    (acc, image) => {
+      if (imageArr.includes(image.url)) {
+        acc.includedImages.push(image);
+      } else {
+        acc.excludedImages.push(image);
       }
+      return acc;
+    },
+    { includedImages: [], excludedImages: [] }
+  );
+  return { includedImages, excludedImages };
+}
+
+function deleteImageFromFS(images) {
+  const imagesPath = images
+    .map((image) => Object.values(image.formats)
+    .map((format) => format.url))
+    .flat()
+  deleteFilesFromFS(imagesPath);
+}
+
+function deleteVideoFromFS(videos) {
+  deleteFilesFromFS(videos);
+}
+
+function deleteFilesFromFS(files) {
+  const staticDir = getMediaDirectoryPath("./static");
+  files.forEach((file) => {
+    const filePath = path.join(staticDir, file);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
     }
   });
 }
-
 async function getOrCreateCart(userId = false) {
   let cart;
   if (userId) {
@@ -276,6 +297,8 @@ export {
   generateFileName,
   storeMediaLocally,
   normalizeFileArray,
-  deleteMediaFromFS,
+  deleteImageFromFS,
+  deleteVideoFromFS,
   getMediaDirectoryPath,
+  splitImagesByIncludedStatus
 };
